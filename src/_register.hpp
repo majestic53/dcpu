@@ -175,6 +175,11 @@ public:
 	std::string dump(void);
 
 	/*
+	 * Dump a register to file at a given path
+	 */
+	bool dump_to_file(const std::string &path);
+
+	/*
 	 * Return a register value
 	 */
 	unsigned short get(void) { return value; }

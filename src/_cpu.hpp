@@ -38,6 +38,19 @@ public:
 	 */
 	static const unsigned char S_REG_COUNT = 3;
 
+	/*
+	 * Opt-code section lengths
+	 *
+	 * 	--------------------------
+	 * 	| BBBBBB | AAAAAA | OOOO |
+	 * 	--------------------------
+	 *
+	 * 0x00	   0x06		0x0C	0x16
+	 *
+	 */
+	static const unsigned char OP_LEN = 4;
+	static const unsigned char INPUT_LEN = 6;
+
 private:
 
 	/*
@@ -55,6 +68,81 @@ private:
 	 */
 	_memory mem;
 
+	/*
+	 * Add B to A (sets overflow)
+	 */
+	void _add(unsigned short a, unsigned short b);
+
+	/*
+	 * Binary AND of A and B
+	 */
+	void _and(unsigned short a, unsigned short b);
+
+	/*
+	 * Binary OR of A and B
+	 */
+	void _bor(unsigned short a, unsigned short b);
+
+	/*
+	 * Division of A by B (sets overflow)
+	 */
+	void _div(unsigned short a, unsigned short b);
+
+	/*
+	 * Jump one instruction if !(A & B)
+	 */
+	void _ifb(unsigned short a, unsigned short b);
+
+	/*
+	 * Jump one instruction if (A != B)
+	 */
+	void _ife(unsigned short a, unsigned short b);
+
+	/*
+	 * Jump one instruction if (A <= B)
+	 */
+	void _ifg(unsigned short a, unsigned short b);
+
+	/*
+	 * Jump one instruction if (A == B)
+	 */
+	void _ifn(unsigned short a, unsigned short b);
+
+	/*
+	 * Modulus of A by B
+	 */
+	void _mod(unsigned short a, unsigned short b);
+
+	/*
+	 * Multiplication of B from A (sets overflow)
+	 */
+	void _mul(unsigned short a, unsigned short b);
+
+	/*
+	 * Set B to A
+	 */
+	void _set(unsigned short a, unsigned short b);
+
+	/*
+	 * Shift-left A by B (sets overflow)
+	 */
+	void _shl(unsigned short a, unsigned short b);
+
+	/*
+	 * Shift-right A by B (sets overflow)
+	 */
+	void _shr(unsigned short a, unsigned short b);
+
+	/*
+	 * Subtraction of B from A (sets overflow)
+	 */
+	void _sub(unsigned short a, unsigned short b);
+
+	/*
+	 * Exclusive-OR of A and B
+	 */
+	void _xor(unsigned short a, unsigned short b);
+
 public:
 
 	/*
@@ -68,24 +156,37 @@ public:
 	enum S_REG { PC, SP, OVERFLOW };
 
 	/*
-	 * Cpu constructor
+	 * Supported opt-codes
 	 */
-	_cpu(void);
+	enum OPT { SET = 1, ADD, SUB, MUL, DIV, MOD, SHL, SHR,
+		AND, BOR, XOR, IFE, IFN, IFG, IFB };
+
+	/*
+	 * Reserved values
+	 */
+	enum SPEC { POP = 24, PEEK, PUSH, SP_VAL, PC_VAL,
+		OVER_F };
 
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _cpu &other);
+	_cpu(void) { reset(); }
 
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _memory &mem);
+	_cpu(const _cpu &other) : m_reg(other.m_reg), s_reg(other.s_reg), mem(other.mem) { return; }
 
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _register (&m_reg)[M_REG_COUNT], const _register (&s_reg)[S_REG_COUNT], const _memory &mem);
+	_cpu(const _memory &mem) : mem(mem) { reset_registers(); }
+
+	/*
+	 * Cpu constructor
+	 */
+	_cpu(const _register (&m_reg)[M_REG_COUNT], const _register (&s_reg)[S_REG_COUNT], const _memory &mem) : m_reg(m_reg),
+			s_reg(s_reg), mem(mem) { return; }
 
 	/*
 	 * Cpu destructor
@@ -120,17 +221,17 @@ public:
 	/*
 	 * Execute a single command
 	 */
-	void exec(unsigned short opt);
+	bool exec(unsigned short opt);
 
 	/*
 	 * Execute a series of commands
 	 */
-	void exec(std::vector<unsigned short> &opt);
+	bool exec(std::vector<unsigned short> &opt) { return exec(0, opt.size(), opt); }
 
 	/*
 	 * Execute a series of commands starting at offset to range
 	 */
-	void exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &opt);
+	bool exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &opt);
 
 	/*
 	 * Return a main register
@@ -146,6 +247,11 @@ public:
 	 * Reset cpu
 	 */
 	void reset(void);
+
+	/*
+	 * Reset all registers
+	 */
+	void reset_registers(void);
 
 	/*
 	 * Return a system register

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include "_register.hpp"
@@ -68,6 +69,22 @@ std::string _register::dump(void) {
 	// convert element into hex
 	ss << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (unsigned)(unsigned short) value;
 	return ss.str();
+}
+
+/*
+ * Dump memory to file at a given path
+ */
+bool _register::dump_to_file(const std::string &path) {
+
+	// attempt to open file at path
+	std::ofstream file(path.c_str(), std::ios::out | std::ios::ate | std::ios::binary);
+	if(!file.is_open())
+		return false;
+
+	// write memory to file
+	file.write(reinterpret_cast<const char *>(&value), sizeof(unsigned short));
+	file.close();
+	return true;
 }
 
 /*

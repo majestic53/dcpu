@@ -79,7 +79,7 @@ std::string _memory::dump(unsigned short offset, unsigned short range) {
 bool _memory::dump_to_file(unsigned short offset, unsigned short range, const std::string &path) {
 
 	// attempt to open file at path
-	std::ofstream file(path.c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+	std::ofstream file(path.c_str(), std::ios::out | std::ios::ate | std::ios::binary);
 	if(!file.is_open())
 		return false;
 

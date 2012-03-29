@@ -21,54 +21,73 @@
 #include "_cpu.hpp"
 
 /*
- * Cpu constructor
- */
-_cpu::_cpu(void) {
-
-	// TODO
-
-}
-
-/*
- * Cpu constructor
- */
-_cpu::_cpu(const _cpu &other) {
-
-	// TODO
-
-}
-
-/*
- * Cpu constructor
- */
-_cpu::_cpu(const _memory &mem) {
-
-	// TODO
-
-}
-
-/*
- * Cpu constructor
- */
-_cpu::_cpu(const _register (&m_reg)[M_REG_COUNT], const _register (&s_reg)[S_REG_COUNT], const _memory &mem) {
-
-	// TODO
-
-}
-
-/*
  * Cpu assignment operator
  */
 _cpu &_cpu::operator=(const _cpu &other) {
 
-	// TODO
+	// check for self
+	if(this == &other)
+		return *this;
 
+	// set attributes
+	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+		m_reg[i] == other.m_reg[i];
+	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+		s_reg[i] == other.s_reg[i];
+	mem == other.mem;
+	return *this;
 }
 
 /*
  * Cpu equals operator
  */
 bool _cpu::operator==(const _cpu &other) {
+
+	// check for self
+	if(this == &other)
+		return true;
+
+	// check attributes
+	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+		if(m_reg[i] != other.m_reg[i])
+			return false;
+	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+		if(s_reg[i] != other.s_reg[i])
+			return false;
+	return mem == other.mem;
+}
+
+/*
+ * Add B to A (sets overflow)
+ */
+void _cpu::_add(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Binary AND of A and B
+ */
+void _cpu::_and(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Binary OR of A and B
+ */
+void _cpu::_bor(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Division of A by B (sets overflow)
+ */
+void _cpu::_div(unsigned short a, unsigned short b) {
 
 	// TODO
 
@@ -78,9 +97,23 @@ bool _cpu::operator==(const _cpu &other) {
  * Return a string representation of a cpu
  */
 std::string _cpu::dump(void) {
+	std::stringstream ss;
 
-	// TODO
+	// print all system registers
+	ss << "S_REG { ";
+	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+		ss << s_reg[i].dump() << ", ";
 
+
+	// print all main registers
+	ss << "}" << std::endl << "M_REG { ";
+	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+		ss << m_reg[i].dump() << ", ";
+	ss << "}" << std::endl << "--MEM--" << std::endl;
+
+	// print memory
+	ss << mem.dump(_memory::LOW, _memory::HIGH);
+	return ss.str();
 }
 
 /*
@@ -88,32 +121,144 @@ std::string _cpu::dump(void) {
  */
 bool _cpu::dump_to_file(const std::string &path) {
 
-	// TODO
+	// write system registers to file
+	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+		if(!s_reg[i].dump_to_file(path))
+			return false;
 
+	// write main registers to file
+	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+		if(!m_reg[i].dump_to_file(path))
+			return false;
+
+	// write memory to file
+	return mem.dump_to_file(_memory::LOW, _memory::HIGH, path);
 }
 
 /*
  * Execute a single command
  */
-void _cpu::exec(unsigned short opt) {
+bool _cpu::exec(unsigned short opt) {
+	unsigned char code = 0;
+	unsigned short a = 0, b = 0;
 
-	// TODO
+	// parse opt-code, A & B from opt
+	for(size_t i = 0; i < 8 * sizeof(short); ++i)
 
-}
+		// parse code
+		if(i < OP_LEN) {
+			if(opt & (1 << i))
+				code |= (1 << i);
 
-/*
- * Execute a series of commands
- */
-void _cpu::exec(std::vector<unsigned short> &opt) {
+		// parse A
+		} else if(i > OP_LEN && i < OP_LEN + INPUT_LEN) {
+			if(opt & (1 << i))
+				a |= (1 << (i - OP_LEN));
 
-	// TODO
+		// parse B
+		} else {
+			if(opt & (1 << i))
+				b |= (1 << (i - (OP_LEN + INPUT_LEN)));
+		}
 
+	// execute command based on code
+	switch(code) {
+		case SET: _set(a, b);
+			break;
+		case ADD: _add(a, b);
+			break;
+		case SUB: _sub(a, b);
+			break;
+		case MUL: _mul(a, b);
+			break;
+		case DIV: _div(a, b);
+			break;
+		case MOD: _mod(a, b);
+			break;
+		case SHL: _shl(a, b);
+			break;
+		case SHR: _shr(a, b);
+			break;
+		case AND: _and(a, b);
+			break;
+		case BOR: _bor(a, b);
+			break;
+		case XOR: _xor(a, b);
+			break;
+		case IFE: _ife(a, b);
+			break;
+		case IFN: _ifn(a, b);
+			break;
+		case IFG: _ifg(a, b);
+			break;
+		case IFB: _ifb(a, b);
+			break;
+		default: return false;
+	}
+	return true;
 }
 
 /*
  * Execute a series of commands starting at offset to range
  */
-void _cpu::exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &opt) {
+bool _cpu::exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &opt) {
+
+	// execute all commands
+	for(unsigned short i = 0; i < range; ++i)
+		if(!exec(opt.at(offset + i)))
+			return false;
+	return true;
+}
+
+/*
+ * Jump one instruction if !(A & B)
+ */
+void _cpu::_ifb(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Jump one instruction if (A != B)
+ */
+void _cpu::_ife(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Jump one instruction if (A <= B)
+ */
+void _cpu::_ifg(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Jump one instruction if (A == B)
+ */
+void _cpu::_ifn(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Modulus of A by B
+ */
+void _cpu::_mod(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Multiplication of B from A (sets overflow)
+ */
+void _cpu::_mul(unsigned short a, unsigned short b) {
 
 	// TODO
 
@@ -123,6 +268,66 @@ void _cpu::exec(unsigned short offset, unsigned short range, std::vector<unsigne
  * Reset cpu
  */
 void _cpu::reset(void) {
+
+	// reset all components
+	reset_registers();
+	mem.clear();
+}
+
+/*
+ * Reset all registers
+ */
+void _cpu::reset_registers(void) {
+
+	// clear main registers
+	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+		m_reg[i].clear();
+
+	// clear system registers
+	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+		s_reg[i].clear();
+}
+
+/*
+ * Set B to A
+ */
+void _cpu::_set(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Shift-left A by B (sets overflow)
+ */
+void _cpu::_shl(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Shift-right A by B (sets overflow)
+ */
+void _cpu::_shr(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Subtraction of B from A (sets overflow)
+ */
+void _cpu::_sub(unsigned short a, unsigned short b) {
+
+	// TODO
+
+}
+
+/*
+ * Exclusive-OR of A and B
+ */
+void _cpu::_xor(unsigned short a, unsigned short b) {
 
 	// TODO
 
