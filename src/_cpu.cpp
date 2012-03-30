@@ -237,11 +237,11 @@ unsigned short _cpu::get_value(unsigned short location) {
 
 	// value of address at PC + 1
 	else if(location == ADR_OFF)
-		return mem.at(s_reg[PC].get() + 1);
+		return mem.at(mem.at(s_reg[PC].get() + 1));
 
 	// value of PC + 1
 	else if(location == LIT_OFF)
-		return s_reg[PC].get() + 1;
+		return mem.at(s_reg[PC].get() + 1);
 
 	// Literal value from 0 - 31
 	else if(location >= L_LIT && location <= H_LIT)
@@ -352,8 +352,11 @@ void _cpu::set_value(unsigned short location, unsigned short value) {
 
 	// value of address at PC + 1
 	else if(location == ADR_OFF)
-		mem.set(s_reg[PC].get() + 1, value);
+		mem.set(mem.at(s_reg[PC].get() + 1), value);
 
+	// value of PC + 1
+	else if(location == LIT_OFF)
+		return mem.set(s_reg[PC].get() + 1, value);
 }
 
 /*
