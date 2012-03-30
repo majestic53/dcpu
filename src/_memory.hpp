@@ -34,13 +34,13 @@ public:
 	/*
 	 * Word count
 	 */
-	static const unsigned short COUNT = 0xFFFF;
+	static const unsigned int COUNT = 0x10000;
 
 	/*
 	 * Word boundaries
 	 */
 	static const unsigned short LOW = 0x0;
-	static const unsigned short HIGH = COUNT;
+	static const unsigned short HIGH = COUNT - 1;
 
 private:
 
@@ -94,12 +94,17 @@ public:
 	/*
 	 * Clear mem
 	 */
-	void clear(void) { fill(LOW, COUNT, ZERO); }
+	void clear(void) { fill_all(ZERO); }
 
 	/*
 	 * Return a string representation of a given offset and range
 	 */
 	std::string dump(unsigned short offset, unsigned short range);
+
+	/*
+	 * Return a string representation of all memory
+	 */
+	std::string dump_all(void) { return dump(LOW, HIGH); }
 
 	/*
 	 * Dump memory to file at a given path
@@ -110,6 +115,11 @@ public:
 	 * Fill mem from offset to offset and range offset with a given value
 	 */
 	void fill(unsigned short offset, unsigned short range, unsigned short value);
+
+	/*
+	 * Fill mem with a given value
+	 */
+	void fill_all(unsigned short value) { fill(LOW, HIGH, value); }
 
 	/*
 	 * Set value at offset
