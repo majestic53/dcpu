@@ -81,12 +81,12 @@ private:
 	/*
 	 * Binary AND of A and B
 	 */
-	void _and(unsigned short a, unsigned short b);
+	void _and(unsigned short a, unsigned short b) { set_value(a, get_value(a) & get_value(b)); }
 
 	/*
 	 * Binary OR of A and B
 	 */
-	void _bor(unsigned short a, unsigned short b);
+	void _bor(unsigned short a, unsigned short b) { set_value(a, get_value(a) | get_value(b)); }
 
 	/*
 	 * Division of A by B (sets overflow)
@@ -121,7 +121,7 @@ private:
 	/*
 	 * Modulus of A by B
 	 */
-	void _mod(unsigned short a, unsigned short b);
+	void _mod(unsigned short a, unsigned short b) { set_value(a, get_value(a) % get_value(b)); }
 
 	/*
 	 * Multiplication of B from A (sets overflow)
@@ -129,9 +129,9 @@ private:
 	void _mul(unsigned short a, unsigned short b);
 
 	/*
-	 * Set B to A
+	 * Set A to B
 	 */
-	void _set(unsigned short a, unsigned short b);
+	void _set(unsigned short a, unsigned short b) { set_value(a, get_value(b)); }
 
 	/*
 	 * Set a value held at a given location
@@ -156,7 +156,7 @@ private:
 	/*
 	 * Exclusive-OR of A and B
 	 */
-	void _xor(unsigned short a, unsigned short b);
+	void _xor(unsigned short a, unsigned short b) { set_value(a, get_value(a) ^ get_value(b)); }
 
 public:
 

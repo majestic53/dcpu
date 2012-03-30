@@ -61,36 +61,24 @@ bool _cpu::operator==(const _cpu &other) {
  * Add B to A (sets overflow)
  */
 void _cpu::_add(unsigned short a, unsigned short b) {
+	unsigned int value;
 
-	// TODO
-
-}
-
-/*
- * Binary AND of A and B
- */
-void _cpu::_and(unsigned short a, unsigned short b) {
-
-	// TODO
-
-}
-
-/*
- * Binary OR of A and B
- */
-void _cpu::_bor(unsigned short a, unsigned short b) {
-
-	// TODO
-
+	// check for overflow
+	if((value = get_value(a) + get_value(b)) >= 0x10000)
+		s_reg[OVERFLOW].set(0x1);
+	set_value(a, value);
 }
 
 /*
  * Division of A by B (sets overflow)
  */
 void _cpu::_div(unsigned short a, unsigned short b) {
+	unsigned int value;
 
-	// TODO
-
+	// check for overflow
+	if((value = get_value(a) / get_value(b)) >= 0x10000)
+		s_reg[OVERFLOW].set(0x1);
+	set_value(a, value);
 }
 
 /*
@@ -265,54 +253,44 @@ unsigned short _cpu::get_value(unsigned short location) {
  * Jump one instruction if !(A & B)
  */
 void _cpu::_ifb(unsigned short a, unsigned short b) {
-
-	// TODO
-
+	if(!(get_value(a) & get_value(b)))
+		s_reg[PC]++;
 }
 
 /*
  * Jump one instruction if (A != B)
  */
 void _cpu::_ife(unsigned short a, unsigned short b) {
-
-	// TODO
-
+	if(get_value(a) != get_value(b))
+		s_reg[PC]++;
 }
 
 /*
  * Jump one instruction if (A <= B)
  */
 void _cpu::_ifg(unsigned short a, unsigned short b) {
-
-	// TODO
-
+	if(get_value(a) <= get_value(b))
+		s_reg[PC]++;
 }
 
 /*
  * Jump one instruction if (A == B)
  */
 void _cpu::_ifn(unsigned short a, unsigned short b) {
-
-	// TODO
-
-}
-
-/*
- * Modulus of A by B
- */
-void _cpu::_mod(unsigned short a, unsigned short b) {
-
-	// TODO
-
+	if(get_value(a) == get_value(b))
+		s_reg[PC]++;
 }
 
 /*
  * Multiplication of B from A (sets overflow)
  */
 void _cpu::_mul(unsigned short a, unsigned short b) {
+	unsigned int value;
 
-	// TODO
-
+	// check for overflow
+	if((value = get_value(a) * get_value(b)) >= 0x10000)
+		s_reg[OVERFLOW].set(0x1);
+	set_value(a, value);
 }
 
 /*
@@ -337,15 +315,6 @@ void _cpu::reset_registers(void) {
 	// clear system registers
 	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
 		s_reg[i].clear();
-}
-
-/*
- * Set B to A
- */
-void _cpu::_set(unsigned short a, unsigned short b) {
-
-	// TODO
-
 }
 
 /*
@@ -391,34 +360,34 @@ void _cpu::set_value(unsigned short location, unsigned short value) {
  * Shift-left A by B (sets overflow)
  */
 void _cpu::_shl(unsigned short a, unsigned short b) {
+	unsigned int value;
 
-	// TODO
-
+	// check for overflow
+	if((value = get_value(a) << get_value(b)) >= 0x10000)
+		s_reg[OVERFLOW].set(0x1);
+	set_value(a, value);
 }
 
 /*
  * Shift-right A by B (sets overflow)
  */
 void _cpu::_shr(unsigned short a, unsigned short b) {
+	unsigned short value, a_val = get_value(a), b_val = get_value(b);
 
 	// TODO
-
+	if((value = a_val >> b_val) >= a_val)
+		s_reg[OVERFLOW].set(0x1);
+	set_value(a, value);
 }
 
 /*
  * Subtraction of B from A (sets overflow)
  */
 void _cpu::_sub(unsigned short a, unsigned short b) {
+	unsigned short a_val = get_value(a), b_val = get_value(b);
 
-	// TODO
-
-}
-
-/*
- * Exclusive-OR of A and B
- */
-void _cpu::_xor(unsigned short a, unsigned short b) {
-
-	// TODO
-
+	// check for overflow
+	if(b_val > a_val)
+		s_reg[OVERFLOW].set(0x1);
+	set_value(a, a_val - b_val);
 }
