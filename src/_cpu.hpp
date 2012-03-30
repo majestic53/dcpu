@@ -31,12 +31,17 @@ public:
 	/*
 	 * Main register count
 	 */
-	static const unsigned char M_REG_COUNT = 7;
+	static const unsigned char M_REG_COUNT = 8;
 
 	/*
 	 * System register count
 	 */
 	static const unsigned char S_REG_COUNT = 3;
+
+	/*
+	 * Literal count
+	 */
+	static const unsigned char LIT_COUNT = 32;
 
 	/*
 	 * Opt-code section lengths
@@ -158,7 +163,7 @@ public:
 	/*
 	 * Main registers
 	 */
-	enum M_REG { A, B, C, X, Y, I, J };
+	enum M_REG { A, B, C, X, Y, Z, I, J };
 
 	/*
 	 * System registers

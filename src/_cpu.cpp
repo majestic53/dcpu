@@ -221,11 +221,11 @@ unsigned short _cpu::get_value(unsigned short location) {
 
 	// value at address in register
 	else if(location >= L_VAL && location <= H_VAL)
-		return mem.at(m_reg[location % (M_REG_COUNT + 1)].get());
+		return mem.at(m_reg[location % M_REG_COUNT].get());
 
 	// value at address ((PC + 1) + register value)
 	else if(location >= L_OFF && location <= H_OFF)
-		return mem.at(mem.at(s_reg[PC].get() + 1) + m_reg[location % (M_REG_COUNT + 1)].get());
+		return mem.at(mem.at(s_reg[PC].get() + 1) + m_reg[location % M_REG_COUNT].get());
 
 	// value at address in SP and increment SP
 	else if(location == POP)
@@ -257,7 +257,7 @@ unsigned short _cpu::get_value(unsigned short location) {
 
 	// Literal value from 0 - 31
 	else if(location >= L_LIT && location <= H_LIT)
-		return location % 32;
+		return location % LIT_COUNT;
 	return 0;
 }
 
@@ -359,11 +359,11 @@ void _cpu::set_value(unsigned short location, unsigned short value) {
 
 	// value at address in register
 	else if(location >= L_VAL && location <= H_VAL)
-		mem.set(m_reg[location % (M_REG_COUNT + 1)].get(), value);
+		mem.set(m_reg[location % M_REG_COUNT].get(), value);
 
 	// value at address ((PC + 1) + register value)
 	else if(location >= L_OFF && location <= H_OFF)
-		mem.set(mem.at(s_reg[PC].get() + 1) + m_reg[location % (M_REG_COUNT + 1)].get(), value);
+		mem.set(mem.at(s_reg[PC].get() + 1) + m_reg[location % M_REG_COUNT].get(), value);
 
 	// value at address in SP
 	else if(location == PUSH)
