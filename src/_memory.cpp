@@ -1,5 +1,5 @@
 /*
- * mem.cpp
+ * _memory.cpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *

@@ -89,6 +89,11 @@ private:
 	void _div(unsigned short a, unsigned short b);
 
 	/*
+	 * Return a value held at a given location
+	 */
+	unsigned short get_value(unsigned short location);
+
+	/*
 	 * Jump one instruction if !(A & B)
 	 */
 	void _ifb(unsigned short a, unsigned short b);
@@ -122,6 +127,11 @@ private:
 	 * Set B to A
 	 */
 	void _set(unsigned short a, unsigned short b);
+
+	/*
+	 * Set a value held at a given location
+	 */
+	void set_value(unsigned short location, unsigned short value);
 
 	/*
 	 * Shift-left A by B (sets overflow)
@@ -164,8 +174,9 @@ public:
 	/*
 	 * Reserved values
 	 */
-	enum SPEC { POP = 24, PEEK, PUSH, SP_VAL, PC_VAL,
-		OVER_F };
+	enum SPEC { L_REG, H_REG = 7, L_VAL, H_VAL = 15, L_OFF, H_OFF = 23,
+		POP, PEEK, PUSH, SP_VAL, PC_VAL, OVER_F, ADR_OFF, LIT_OFF,
+		L_LIT = 32, H_LIT = 63 };
 
 	/*
 	 * Cpu constructor

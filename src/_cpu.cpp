@@ -211,6 +211,57 @@ bool _cpu::exec(unsigned short offset, unsigned short range, std::vector<unsigne
 }
 
 /*
+ * Return a value held at a given location
+ */
+unsigned short _cpu::get_value(unsigned short location) {
+
+	// register value
+	if(location >= L_REG && location <= H_REG)
+		return m_reg[location].get();
+
+	// value at address in register
+	else if(location >= L_VAL && location <= H_VAL)
+		return mem.at(m_reg[location % (M_REG_COUNT + 1)].get());
+
+	// value at address ((PC + 1) + register value)
+	else if(location >= L_OFF && location <= H_OFF)
+		return mem.at(mem.at(s_reg[PC].get() + 1) + m_reg[location % (M_REG_COUNT + 1)].get());
+
+	// value at address in SP and increment SP
+	else if(location == POP)
+		return mem.at(s_reg[SP]++.get());
+
+	// value at address in SP
+	else if(location == PEEK)
+		return mem.at(s_reg[SP].get());
+
+	// value in SP
+	else if(location == SP_VAL)
+		return s_reg[SP].get();
+
+	// value in PC
+	else if(location == PC_VAL)
+		return s_reg[PC].get();
+
+	// value in overflow
+	else if(location == OVER_F)
+		return s_reg[OVERFLOW].get();
+
+	// value of address at PC + 1
+	else if(location == ADR_OFF)
+		return mem.at(s_reg[PC].get() + 1);
+
+	// value of PC + 1
+	else if(location == LIT_OFF)
+		return s_reg[PC].get() + 1;
+
+	// Literal value from 0 - 31
+	else if(location >= L_LIT && location <= H_LIT)
+		return location % 32;
+	return 0;
+}
+
+/*
  * Jump one instruction if !(A & B)
  */
 void _cpu::_ifb(unsigned short a, unsigned short b) {
@@ -294,6 +345,45 @@ void _cpu::reset_registers(void) {
 void _cpu::_set(unsigned short a, unsigned short b) {
 
 	// TODO
+
+}
+
+/*
+ * Set a value held at a given location
+ */
+void _cpu::set_value(unsigned short location, unsigned short value) {
+
+	// register value
+	if(location >= L_REG && location <= H_REG)
+		m_reg[location].set(value);
+
+	// value at address in register
+	else if(location >= L_VAL && location <= H_VAL)
+		mem.set(m_reg[location % (M_REG_COUNT + 1)].get(), value);
+
+	// value at address ((PC + 1) + register value)
+	else if(location >= L_OFF && location <= H_OFF)
+		mem.set(mem.at(s_reg[PC].get() + 1) + m_reg[location % (M_REG_COUNT + 1)].get(), value);
+
+	// value at address in SP
+	else if(location == PUSH)
+		mem.set((--s_reg[SP]).get(), value);
+
+	// value in SP
+	else if(location == SP_VAL)
+		s_reg[SP].set(value);
+
+	// value in PC
+	else if(location == PC_VAL)
+		s_reg[PC].set(value);
+
+	// value in overflow
+	else if(location == OVER_F)
+		s_reg[OVERFLOW].set(value);
+
+	// value of address at PC + 1
+	else if(location == ADR_OFF)
+		mem.set(s_reg[PC].get() + 1, value);
 
 }
 

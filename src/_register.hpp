@@ -142,12 +142,12 @@ public:
 	/*
 	 * Register unary decrement operator
 	 */
-	_register operator--(void) { return _register(++value); }
+	_register operator--(void) { return _register(--value); }
 
 	/*
 	 * Register unary decrement operator (postfix)
 	 */
-	_register operator--(int i) { return _register(value++); }
+	_register operator--(int i) { return _register(value--); }
 
 	/*
 	 * Register equals operator

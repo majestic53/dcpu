@@ -1,5 +1,5 @@
 /*
- * mem.hpp
+ * _memory.hpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
