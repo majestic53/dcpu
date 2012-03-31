@@ -100,3 +100,13 @@ void _memory::fill(unsigned short offset, unsigned short range, unsigned short v
 	for(unsigned short i = offset; i < finish; ++i)
 		words[i] = value;
 }
+
+/*
+ * Set value at offset
+ */
+void _memory::set(unsigned short offset, unsigned short range, unsigned short *value) {
+
+	// assign values
+	for(unsigned short i = 0; i < range; ++i)
+		words[i + offset] = value[i];
+}

@@ -25,6 +25,9 @@
 class _register {
 private:
 
+	/*
+	 * Value
+	 */
 	unsigned short value;
 
 public:

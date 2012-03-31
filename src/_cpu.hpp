@@ -196,7 +196,7 @@ public:
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _memory &mem) : mem(mem) { reset_registers(); }
+	_cpu(const _memory &mem) : mem(mem) { reset(); }
 
 	/*
 	 * Cpu constructor
@@ -263,11 +263,6 @@ public:
 	 * Reset cpu
 	 */
 	void reset(void);
-
-	/*
-	 * Reset all registers
-	 */
-	void reset_registers(void);
 
 	/*
 	 * Return a system register

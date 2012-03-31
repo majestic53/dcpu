@@ -65,7 +65,7 @@ void _cpu::_add(unsigned short a, unsigned short b) {
 
 	// check for overflow
 	if((value = get_value(a) + get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(0x1);
+		s_reg[OVERFLOW].set(1);
 	set_value(a, value);
 }
 
@@ -77,7 +77,7 @@ void _cpu::_div(unsigned short a, unsigned short b) {
 
 	// check for overflow
 	if((value = get_value(a) / get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(0x1);
+		s_reg[OVERFLOW].set(1);
 	set_value(a, value);
 }
 
@@ -218,6 +218,10 @@ unsigned short _cpu::get_value(unsigned short location) {
 	else if(location == PEEK)
 		return mem.at(s_reg[SP].get());
 
+	// value at address in SP
+	else if(location == PUSH)
+		return mem.at((--s_reg[SP]).get());
+
 	// value in SP
 	else if(location == SP_VAL)
 		return s_reg[SP].get();
@@ -284,7 +288,7 @@ void _cpu::_mul(unsigned short a, unsigned short b) {
 
 	// check for overflow
 	if((value = get_value(a) * get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(0x1);
+		s_reg[OVERFLOW].set(1);
 	set_value(a, value);
 }
 
@@ -292,16 +296,6 @@ void _cpu::_mul(unsigned short a, unsigned short b) {
  * Reset cpu
  */
 void _cpu::reset(void) {
-
-	// reset all components
-	reset_registers();
-	mem.clear();
-}
-
-/*
- * Reset all registers
- */
-void _cpu::reset_registers(void) {
 
 	// clear main registers
 	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
@@ -329,6 +323,14 @@ void _cpu::set_value(unsigned short location, unsigned short value) {
 	else if(location >= L_OFF && location <= H_OFF)
 		mem.set(mem.at(s_reg[PC].get() + 1) + m_reg[location % M_REG_COUNT].get(), value);
 
+	// value at address in SP and increment SP
+	else if(location == POP)
+		mem.set(s_reg[SP]++.get(), value);
+
+	// value at address in SP
+	else if(location == PEEK)
+		mem.set(s_reg[SP].get(), value);
+
 	// value at address in SP
 	else if(location == PUSH)
 		mem.set((--s_reg[SP]).get(), value);
@@ -348,10 +350,6 @@ void _cpu::set_value(unsigned short location, unsigned short value) {
 	// value of address at PC + 1
 	else if(location == ADR_OFF)
 		mem.set(mem.at(s_reg[PC].get() + 1), value);
-
-	// value of PC + 1
-	else if(location == LIT_OFF)
-		return mem.set(s_reg[PC].get() + 1, value);
 }
 
 /*
@@ -362,7 +360,7 @@ void _cpu::_shl(unsigned short a, unsigned short b) {
 
 	// check for overflow
 	if((value = get_value(a) << get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(0x1);
+		s_reg[OVERFLOW].set(1);
 	set_value(a, value);
 }
 
@@ -374,7 +372,7 @@ void _cpu::_shr(unsigned short a, unsigned short b) {
 
 	// check for overflow
 	if((value = a_val >> b_val) >= a_val)
-		s_reg[OVERFLOW].set(0x1);
+		s_reg[OVERFLOW].set(1);
 	set_value(a, value);
 }
 
@@ -386,6 +384,6 @@ void _cpu::_sub(unsigned short a, unsigned short b) {
 
 	// check for overflow
 	if(b_val > a_val)
-		s_reg[OVERFLOW].set(0x1);
+		s_reg[OVERFLOW].set(1);
 	set_value(a, a_val - b_val);
 }

@@ -125,6 +125,11 @@ public:
 	 * Set value at offset
 	 */
 	void set(unsigned short offset, unsigned short value) { words[offset] = value; }
+
+	/*
+	 * Set value at offset
+	 */
+	void set(unsigned short offset, unsigned short range, unsigned short *value);
 };
 
 #endif
