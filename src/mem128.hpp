@@ -1,5 +1,5 @@
 /*
- * _memory.hpp
+ * mem128.hpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
@@ -17,13 +17,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MEMORY_HPP_
-#define _MEMORY_HPP_
+#ifndef MEM128_HPP_
+#define MEM128_HPP_
 
 #include <cstring>
 #include <string>
 
-class _memory {
+class mem128 {
 public:
 
 	/*
@@ -54,47 +54,47 @@ public:
 	/*
 	 * Mem constructor
 	 */
-	_memory(void) { clear(); }
+	mem128(void);
 
 	/*
 	 * Mem constructor
 	 */
-	_memory(const _memory &other) { memcpy(words, other.words, COUNT); }
+	mem128(const mem128 &other);
 
 	/*
 	 * Mem constructor
 	 */
-	_memory(const unsigned short (&words)[COUNT]) { memcpy(this->words, words, COUNT); }
+	mem128(const unsigned short (&words)[COUNT]);
 
 	/*
 	 * Mem destructor
 	 */
-	virtual ~_memory(void) { return; }
+	virtual ~mem128(void);
 
 	/*
 	 * Mem assignment operator
 	 */
-	_memory &operator=(const _memory &other);
+	mem128 &operator=(const mem128 &other);
 
 	/*
 	 * Mem equals operator
 	 */
-	bool operator==(const _memory &other);
+	bool operator==(const mem128 &other);
 
 	/*
 	 * Mem not-equals operator
 	 */
-	bool operator!=(const _memory &other) { return !(*this == other); }
+	bool operator!=(const mem128 &other);
 
 	/*
 	 * Return value at offset
 	 */
-	unsigned short at(unsigned short offset) { return words[offset]; }
+	unsigned short at(unsigned short offset);
 
 	/*
 	 * Clear mem
 	 */
-	void clear(void) { fill_all(ZERO); }
+	void clear(void);
 
 	/*
 	 * Return a string representation of a given offset and range
@@ -104,7 +104,7 @@ public:
 	/*
 	 * Return a string representation of all memory
 	 */
-	std::string dump_all(void) { return dump(LOW, HIGH); }
+	std::string dump_all(void);
 
 	/*
 	 * Dump memory to file at a given path
@@ -119,12 +119,12 @@ public:
 	/*
 	 * Fill mem with a given value
 	 */
-	void fill_all(unsigned short value) { fill(LOW, HIGH, value); }
+	void fill_all(unsigned short value);
 
 	/*
 	 * Set value at offset
 	 */
-	void set(unsigned short offset, unsigned short value) { words[offset] = value; }
+	void set(unsigned short offset, unsigned short value);
 
 	/*
 	 * Set value at offset

@@ -1,5 +1,5 @@
 /*
- * _memory.cpp
+ * mem128.cpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
@@ -20,12 +20,40 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
-#include "_memory.hpp"
+#include "mem128.hpp"
+
+/*
+ * Mem constructor
+ */
+mem128::mem128(void) {
+	clear();
+}
+
+/*
+ * Mem constructor
+ */
+mem128::mem128(const mem128 &other) {
+	memcpy(words, other.words, COUNT);
+}
+
+/*
+ * Mem constructor
+ */
+mem128::mem128(const unsigned short (&words)[COUNT]) {
+	memcpy(this->words, words, COUNT);
+}
+
+/*
+ * Mem destructor
+ */
+mem128::~mem128(void) {
+	return;
+}
 
 /*
  * Memory assignment operator
  */
-_memory &_memory::operator=(const _memory &other) {
+mem128 &mem128::operator=(const mem128 &other) {
 
 	// check for self
 	if(this == &other)
@@ -39,7 +67,7 @@ _memory &_memory::operator=(const _memory &other) {
 /*
  * Memory equals operator
  */
-bool _memory::operator==(const _memory &other) {
+bool mem128::operator==(const mem128 &other) {
 
 	// check for self
 	if(this == &other)
@@ -53,9 +81,30 @@ bool _memory::operator==(const _memory &other) {
 }
 
 /*
+ * Mem not-equals operator
+ */
+bool mem128::operator!=(const mem128 &other) {
+	return !(*this == other);
+}
+
+/*
+ * Return value at offset
+ */
+unsigned short mem128::at(unsigned short offset) {
+	return words[offset];
+}
+
+/*
+ * Clear mem
+ */
+void mem128::clear(void) {
+	fill_all(ZERO);
+}
+
+/*
  * Return a string representation of a given offset and range
  */
-std::string _memory::dump(unsigned short offset, unsigned short range) {
+std::string mem128::dump(unsigned short offset, unsigned short range) {
 	std::stringstream ss;
 
 	// iterate through elements
@@ -74,9 +123,16 @@ std::string _memory::dump(unsigned short offset, unsigned short range) {
 }
 
 /*
+ * Return a string representation of all memory
+ */
+std::string mem128::dump_all(void) {
+	return dump(LOW, HIGH);
+}
+
+/*
  * Dump memory to file at a given path
  */
-bool _memory::dump_to_file(unsigned short offset, unsigned short range, const std::string &path) {
+bool mem128::dump_to_file(unsigned short offset, unsigned short range, const std::string &path) {
 
 	// attempt to open file at path
 	std::ofstream file(path.c_str(), std::ios::out | std::ios::ate | std::ios::binary);
@@ -93,7 +149,7 @@ bool _memory::dump_to_file(unsigned short offset, unsigned short range, const st
 /*
  * Fill mem from start to end offset with a given value
  */
-void _memory::fill(unsigned short offset, unsigned short range, unsigned short value) {
+void mem128::fill(unsigned short offset, unsigned short range, unsigned short value) {
 	unsigned short finish = offset + range;
 
 	// assign values
@@ -102,9 +158,23 @@ void _memory::fill(unsigned short offset, unsigned short range, unsigned short v
 }
 
 /*
+ * Fill mem with a given value
+ */
+void mem128::fill_all(unsigned short value) {
+	fill(LOW, HIGH, value);
+}
+
+/*
  * Set value at offset
  */
-void _memory::set(unsigned short offset, unsigned short range, unsigned short *value) {
+void mem128::set(unsigned short offset, unsigned short value) {
+	words[offset] = value;
+}
+
+/*
+ * Set value at offset
+ */
+void mem128::set(unsigned short offset, unsigned short range, unsigned short *value) {
 
 	// assign values
 	for(unsigned short i = 0; i < range; ++i)

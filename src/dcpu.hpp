@@ -1,5 +1,5 @@
 /*
- * _cpu.hpp
+ * dcpu.hpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
@@ -17,15 +17,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CPU_HPP_
-#define CPU_HPP_
+#ifndef DCPU_HPP_
+#define DCPU_HPP_
 
 #include <string>
 #include <vector>
-#include "_memory.hpp"
-#include "_register.hpp"
+#include "mem128.hpp"
+#include "reg16.hpp"
 
-class _cpu {
+class dcpu {
 public:
 
 	/*
@@ -44,7 +44,7 @@ public:
 	static const unsigned char LIT_COUNT = 32;
 
 	/*
-	 * Opt-code section lengths
+	 * Opcode section lengths
 	 *
 	 * 	--------------------------
 	 * 	| BBBBBB | AAAAAA | OOOO |
@@ -61,17 +61,17 @@ private:
 	/*
 	 * Main registers (A - J)
 	 */
-	_register m_reg[M_REG_COUNT];
+	reg16 m_reg[M_REG_COUNT];
 
 	/*
 	 * System registers (PC - Overflow)
 	 */
-	_register s_reg[S_REG_COUNT];
+	reg16 s_reg[S_REG_COUNT];
 
 	/*
 	 * Memory (128Kb)
 	 */
-	_memory mem;
+	mem128 mem;
 
 	/*
 	 * Add B to A (sets overflow)
@@ -81,12 +81,12 @@ private:
 	/*
 	 * Binary AND of A and B
 	 */
-	void _and(unsigned short a, unsigned short b) { set_value(a, get_value(a) & get_value(b)); }
+	void _and(unsigned short a, unsigned short b);
 
 	/*
 	 * Binary OR of A and B
 	 */
-	void _bor(unsigned short a, unsigned short b) { set_value(a, get_value(a) | get_value(b)); }
+	void _bor(unsigned short a, unsigned short b);
 
 	/*
 	 * Division of A by B (sets overflow)
@@ -121,7 +121,7 @@ private:
 	/*
 	 * Modulus of A by B
 	 */
-	void _mod(unsigned short a, unsigned short b) { set_value(a, get_value(a) % get_value(b)); }
+	void _mod(unsigned short a, unsigned short b);
 
 	/*
 	 * Multiplication of B from A (sets overflow)
@@ -131,7 +131,7 @@ private:
 	/*
 	 * Set A to B
 	 */
-	void _set(unsigned short a, unsigned short b) { set_value(a, get_value(b)); }
+	void _set(unsigned short a, unsigned short b);
 
 	/*
 	 * Set a value held at a given location
@@ -156,7 +156,7 @@ private:
 	/*
 	 * Exclusive-OR of A and B
 	 */
-	void _xor(unsigned short a, unsigned short b) { set_value(a, get_value(a) ^ get_value(b)); }
+	void _xor(unsigned short a, unsigned short b);
 
 public:
 
@@ -186,43 +186,42 @@ public:
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(void) { reset(); }
+	dcpu(void);
 
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _cpu &other) : m_reg(other.m_reg), s_reg(other.s_reg), mem(other.mem) { return; }
+	dcpu(const dcpu &other);
 
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _memory &mem) : mem(mem) { reset(); }
+	dcpu(const mem128 &mem);
 
 	/*
 	 * Cpu constructor
 	 */
-	_cpu(const _register (&m_reg)[M_REG_COUNT], const _register (&s_reg)[S_REG_COUNT], const _memory &mem) : m_reg(m_reg),
-			s_reg(s_reg), mem(mem) { return; }
+	dcpu(const reg16 (&m_reg)[M_REG_COUNT], const reg16 (&s_reg)[S_REG_COUNT], const mem128 &mem);
 
 	/*
 	 * Cpu destructor
 	 */
-	virtual ~_cpu(void) { return; }
+	virtual ~dcpu(void);
 
 	/*
 	 * Cpu assignment operator
 	 */
-	_cpu &operator=(const _cpu &other);
+	dcpu &operator=(const dcpu &other);
 
 	/*
 	 * Cpu equals operator
 	 */
-	bool operator==(const _cpu &other);
+	bool operator==(const dcpu &other);
 
 	/*
 	 * Cpu not-equals operator
 	 */
-	bool operator!=(const _cpu &other) { return !(*this == other); }
+	bool operator!=(const dcpu &other);
 
 	/*
 	 * Return a string representation of a cpu
@@ -237,27 +236,27 @@ public:
 	/*
 	 * Execute a single command
 	 */
-	bool exec(unsigned short opt);
+	bool exec(unsigned short op);
 
 	/*
 	 * Execute a series of commands
 	 */
-	bool exec(std::vector<unsigned short> &opt) { return exec(0, opt.size(), opt); }
+	bool exec(std::vector<unsigned short> &op);
 
 	/*
 	 * Execute a series of commands starting at offset to range
 	 */
-	bool exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &opt);
+	bool exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &op);
 
 	/*
 	 * Return a main register
 	 */
-	_register &m_register(unsigned char reg) { return m_reg[reg]; }
+	reg16 &m_register(unsigned char reg);
 
 	/*
 	 * Return memory
 	 */
-	_memory &memory(void) { return mem; }
+	mem128 &memory(void);
 
 	/*
 	 * Reset cpu
@@ -267,7 +266,7 @@ public:
 	/*
 	 * Return a system register
 	 */
-	_register &s_register(unsigned char reg) { return s_reg[reg]; }
+	reg16 &s_register(unsigned char reg);
 };
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * _cpu.cpp
+ * dcpu.cpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
@@ -18,12 +18,46 @@
  */
 
 #include <sstream>
-#include "_cpu.hpp"
+#include "dcpu.hpp"
+
+/*
+ * Cpu constructor
+ */
+dcpu::dcpu(void) { reset(); }
+
+/*
+ * Cpu constructor
+ */
+dcpu::dcpu(const dcpu &other) : m_reg(other.m_reg), s_reg(other.s_reg), mem(other.mem) {
+	return;
+}
+
+/*
+ * Cpu constructor
+ */
+dcpu::dcpu(const mem128 &mem) : mem(mem) {
+	reset();
+}
+
+/*
+ * Cpu constructor
+ */
+dcpu::dcpu(const reg16 (&m_reg)[M_REG_COUNT], const reg16 (&s_reg)[S_REG_COUNT], const mem128 &mem) : m_reg(m_reg),
+		s_reg(s_reg), mem(mem) {
+	return;
+}
+
+/*
+ * Cpu destructor
+ */
+dcpu::~dcpu(void) {
+	return;
+}
 
 /*
  * Cpu assignment operator
  */
-_cpu &_cpu::operator=(const _cpu &other) {
+dcpu &dcpu::operator=(const dcpu &other) {
 
 	// check for self
 	if(this == &other)
@@ -41,7 +75,7 @@ _cpu &_cpu::operator=(const _cpu &other) {
 /*
  * Cpu equals operator
  */
-bool _cpu::operator==(const _cpu &other) {
+bool dcpu::operator==(const dcpu &other) {
 
 	// check for self
 	if(this == &other)
@@ -58,9 +92,16 @@ bool _cpu::operator==(const _cpu &other) {
 }
 
 /*
+ * Cpu not-equals operator
+ */
+bool dcpu::operator!=(const dcpu &other) {
+	return !(*this == other);
+}
+
+/*
  * Add B to A (sets overflow)
  */
-void _cpu::_add(unsigned short a, unsigned short b) {
+void dcpu::_add(unsigned short a, unsigned short b) {
 	unsigned int value;
 
 	// check for overflow
@@ -70,9 +111,23 @@ void _cpu::_add(unsigned short a, unsigned short b) {
 }
 
 /*
+ * Binary AND of A and B
+ */
+void dcpu::_and(unsigned short a, unsigned short b) {
+	set_value(a, get_value(a) & get_value(b));
+}
+
+/*
+ * Binary OR of A and B
+ */
+void dcpu::_bor(unsigned short a, unsigned short b) {
+	set_value(a, get_value(a) | get_value(b));
+}
+
+/*
  * Division of A by B (sets overflow)
  */
-void _cpu::_div(unsigned short a, unsigned short b) {
+void dcpu::_div(unsigned short a, unsigned short b) {
 	unsigned int value;
 
 	// check for overflow
@@ -82,9 +137,110 @@ void _cpu::_div(unsigned short a, unsigned short b) {
 }
 
 /*
+ * Jump one instruction if !(A & B)
+ */
+void dcpu::_ifb(unsigned short a, unsigned short b) {
+	if(!(get_value(a) & get_value(b)))
+		s_reg[PC]++;
+}
+
+/*
+ * Jump one instruction if (A != B)
+ */
+void dcpu::_ife(unsigned short a, unsigned short b) {
+	if(get_value(a) != get_value(b))
+		s_reg[PC]++;
+}
+
+/*
+ * Jump one instruction if (A <= B)
+ */
+void dcpu::_ifg(unsigned short a, unsigned short b) {
+	if(get_value(a) <= get_value(b))
+		s_reg[PC]++;
+}
+
+/*
+ * Jump one instruction if (A == B)
+ */
+void dcpu::_ifn(unsigned short a, unsigned short b) {
+	if(get_value(a) == get_value(b))
+		s_reg[PC]++;
+}
+
+/*
+ * Modulus of A by B
+ */
+void dcpu::_mod(unsigned short a, unsigned short b) {
+	set_value(a, get_value(a) % get_value(b));
+}
+
+/*
+ * Multiplication of B from A (sets overflow)
+ */
+void dcpu::_mul(unsigned short a, unsigned short b) {
+	unsigned int value;
+
+	// check for overflow
+	if((value = get_value(a) * get_value(b)) >= 0x10000)
+		s_reg[OVERFLOW].set(1);
+	set_value(a, value);
+}
+
+/*
+ * Set A to B
+ */
+void dcpu::_set(unsigned short a, unsigned short b) {
+	set_value(a, get_value(b));
+}
+
+/*
+ * Shift-left A by B (sets overflow)
+ */
+void dcpu::_shl(unsigned short a, unsigned short b) {
+	unsigned int value;
+
+	// check for overflow
+	if((value = get_value(a) << get_value(b)) >= 0x10000)
+		s_reg[OVERFLOW].set(1);
+	set_value(a, value);
+}
+
+/*
+ * Shift-right A by B (sets overflow)
+ */
+void dcpu::_shr(unsigned short a, unsigned short b) {
+	unsigned short value, a_val = get_value(a), b_val = get_value(b);
+
+	// check for overflow
+	if((value = a_val >> b_val) >= a_val)
+		s_reg[OVERFLOW].set(1);
+	set_value(a, value);
+}
+
+/*
+ * Subtraction of B from A (sets overflow)
+ */
+void dcpu::_sub(unsigned short a, unsigned short b) {
+	unsigned short a_val = get_value(a), b_val = get_value(b);
+
+	// check for overflow
+	if(b_val > a_val)
+		s_reg[OVERFLOW].set(1);
+	set_value(a, a_val - b_val);
+}
+
+/*
+ * Exclusive-OR of A and B
+ */
+void dcpu::_xor(unsigned short a, unsigned short b) {
+	set_value(a, get_value(a) ^ get_value(b));
+}
+
+/*
  * Return a string representation of a cpu
  */
-std::string _cpu::dump(void) {
+std::string dcpu::dump(void) {
 	std::stringstream ss;
 
 	// print all system registers
@@ -104,7 +260,7 @@ std::string _cpu::dump(void) {
 /*
  * Dump cpu to file at a givne path
  */
-bool _cpu::dump_to_file(const std::string &path) {
+bool dcpu::dump_to_file(const std::string &path) {
 
 	// write system registers to file
 	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
@@ -121,7 +277,7 @@ bool _cpu::dump_to_file(const std::string &path) {
 /*
  * Execute a single command
  */
-bool _cpu::exec(unsigned short opt) {
+bool dcpu::exec(unsigned short op) {
 	unsigned char code = 0;
 	unsigned short a = 0, b = 0;
 
@@ -130,17 +286,17 @@ bool _cpu::exec(unsigned short opt) {
 
 		// parse code
 		if(i < OP_LEN) {
-			if(opt & (1 << i))
+			if(op & (1 << i))
 				code |= (1 << i);
 
 		// parse A
 		} else if(i >= OP_LEN && i < OP_LEN + INPUT_LEN) {
-			if(opt & (1 << i))
+			if(op & (1 << i))
 				a |= (1 << (i - OP_LEN));
 
 		// parse B
 		} else {
-			if(opt & (1 << i))
+			if(op & (1 << i))
 				b |= (1 << (i - (OP_LEN + INPUT_LEN)));
 		}
 
@@ -182,13 +338,20 @@ bool _cpu::exec(unsigned short opt) {
 }
 
 /*
+ * Execute a series of commands
+ */
+bool dcpu::exec(std::vector<unsigned short> &op) {
+	return exec(0, op.size(), op);
+}
+
+/*
  * Execute a series of commands starting at offset to range
  */
-bool _cpu::exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &opt) {
+bool dcpu::exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &op) {
 
 	// execute all commands
 	for(unsigned short i = 0; i < range; ++i)
-		if(!exec(opt.at(offset + i)))
+		if(!exec(op.at(offset + i)))
 			return false;
 	return true;
 }
@@ -196,7 +359,7 @@ bool _cpu::exec(unsigned short offset, unsigned short range, std::vector<unsigne
 /*
  * Return a value held at a given location
  */
-unsigned short _cpu::get_value(unsigned short location) {
+unsigned short dcpu::get_value(unsigned short location) {
 
 	// register value
 	if(location >= L_REG && location <= H_REG)
@@ -249,53 +412,23 @@ unsigned short _cpu::get_value(unsigned short location) {
 }
 
 /*
- * Jump one instruction if !(A & B)
+ * Return a main register
  */
-void _cpu::_ifb(unsigned short a, unsigned short b) {
-	if(!(get_value(a) & get_value(b)))
-		s_reg[PC]++;
+reg16 &dcpu::m_register(unsigned char reg) {
+	return m_reg[reg];
 }
 
 /*
- * Jump one instruction if (A != B)
+ * Return memory
  */
-void _cpu::_ife(unsigned short a, unsigned short b) {
-	if(get_value(a) != get_value(b))
-		s_reg[PC]++;
-}
-
-/*
- * Jump one instruction if (A <= B)
- */
-void _cpu::_ifg(unsigned short a, unsigned short b) {
-	if(get_value(a) <= get_value(b))
-		s_reg[PC]++;
-}
-
-/*
- * Jump one instruction if (A == B)
- */
-void _cpu::_ifn(unsigned short a, unsigned short b) {
-	if(get_value(a) == get_value(b))
-		s_reg[PC]++;
-}
-
-/*
- * Multiplication of B from A (sets overflow)
- */
-void _cpu::_mul(unsigned short a, unsigned short b) {
-	unsigned int value;
-
-	// check for overflow
-	if((value = get_value(a) * get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, value);
+mem128 &dcpu::memory(void) {
+	return mem;
 }
 
 /*
  * Reset cpu
  */
-void _cpu::reset(void) {
+void dcpu::reset(void) {
 
 	// clear main registers
 	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
@@ -307,9 +440,16 @@ void _cpu::reset(void) {
 }
 
 /*
+ * Return a system register
+ */
+reg16 &dcpu::s_register(unsigned char reg) {
+	return s_reg[reg];
+}
+
+/*
  * Set a value held at a given location
  */
-void _cpu::set_value(unsigned short location, unsigned short value) {
+void dcpu::set_value(unsigned short location, unsigned short value) {
 
 	// register value
 	if(location >= L_REG && location <= H_REG)
@@ -350,40 +490,4 @@ void _cpu::set_value(unsigned short location, unsigned short value) {
 	// value of address at PC + 1
 	else if(location == ADR_OFF)
 		mem.set(mem.at(s_reg[PC].get() + 1), value);
-}
-
-/*
- * Shift-left A by B (sets overflow)
- */
-void _cpu::_shl(unsigned short a, unsigned short b) {
-	unsigned int value;
-
-	// check for overflow
-	if((value = get_value(a) << get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, value);
-}
-
-/*
- * Shift-right A by B (sets overflow)
- */
-void _cpu::_shr(unsigned short a, unsigned short b) {
-	unsigned short value, a_val = get_value(a), b_val = get_value(b);
-
-	// check for overflow
-	if((value = a_val >> b_val) >= a_val)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, value);
-}
-
-/*
- * Subtraction of B from A (sets overflow)
- */
-void _cpu::_sub(unsigned short a, unsigned short b) {
-	unsigned short a_val = get_value(a), b_val = get_value(b);
-
-	// check for overflow
-	if(b_val > a_val)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, a_val - b_val);
 }

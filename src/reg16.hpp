@@ -1,5 +1,5 @@
 /*
- * _register.hpp
+ * reg16.hpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
@@ -17,12 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _REGISTER_HPP_
-#define _REGISTER_HPP_
+#ifndef REG16_HPP_
+#define REG16_HPP_
 
 #include <string>
 
-class _register {
+class reg16 {
 private:
 
 	/*
@@ -45,122 +45,122 @@ public:
 	/*
 	 * Register constructor
 	 */
-	_register(void) : value(LOW) { return; }
+	reg16(void);
 
 	/*
 	 * Register constructor
 	 */
-	_register(const _register &other) : value(other.value) { return; }
+	reg16(const reg16 &other);
 
 	/*
 	 * Register constructor
 	 */
-	_register(unsigned short reg) : value(reg) { return; }
+	reg16(unsigned short reg);
 
 	/*
 	 * Register destructor
 	 */
-	virtual ~_register(void) { return; }
+	virtual ~reg16(void);
 
 	/*
 	 * Register assignment operator
 	 */
-	_register &operator=(const _register &other);
+	reg16 &operator=(const reg16 &other);
 
 	/*
 	 * Register addition operator
 	 */
-	_register operator+(const _register &other) { return _register(value + other.value); }
+	reg16 operator+(const reg16 &other);
 
 	/*
 	 * Register subtraction operator
 	 */
-	_register operator-(const _register &other) { return _register(value - other.value); }
+	reg16 operator-(const reg16 &other);
 
 	/*
 	 * Register multiplication operator
 	 */
-	_register operator*(const _register &other) { return _register(value * other.value); }
+	reg16 operator*(const reg16 &other);
 
 	/*
 	 * Register division operator
 	 */
-	_register operator/(const _register &other) { return _register(value / other.value); }
+	reg16 operator/(const reg16 &other);
 
 	/*
 	 * Register left shift operator
 	 */
-	_register operator>>(const _register &other) { return _register(value >> other.value); }
+	reg16 operator>>(const reg16 &other);
 
 	/*
 	 * Register right shift operator
 	 */
-	_register operator<<(const _register &other) { return _register(value << other.value); }
+	reg16 operator<<(const reg16 &other);
 
 	/*
 	 * Register modulus operator
 	 */
-	_register operator%(const _register &other) { return _register(value % other.value); }
+	reg16 operator%(const reg16 &other);
 
 	/*
 	 * Register binary AND operator
 	 */
-	_register operator&(const _register &other) { return _register(value & other.value); }
+	reg16 operator&(const reg16 &other);
 
 	/*
 	 * Register binary OR operator
 	 */
-	_register operator|(const _register &other) { return _register(value | other.value); }
+	reg16 operator|(const reg16 &other);
 
 	/*
 	 * Register binary XOR operator
 	 */
-	_register operator^(const _register &other) { return _register(value ^ other.value); }
+	reg16 operator^(const reg16 &other);
 
 	/*
 	 * Register logical AND operator
 	 */
-	bool operator&&(const _register &other) { return value && other.value; }
+	bool operator&&(const reg16 &other);
 
 	/*
 	 * Register logical OR operator
 	 */
-	bool operator||(const _register &other) { return value || other.value; }
+	bool operator||(const reg16 &other);
 
 	/*
 	 * Register unary negaition operator
 	 */
-	_register operator!(void) { return _register(HIGH - value); }
+	reg16 operator!(void);
 
 	/*
 	 * Register unary increment operator (prefix)
 	 */
-	_register operator++(void) { return _register(++value); }
+	reg16 operator++(void);
 
 	/*
 	 * Register unary increment operator (postfix)
 	 */
-	_register operator++(int i) { return _register(value++); }
+	reg16 operator++(int i);
 
 	/*
 	 * Register unary decrement operator
 	 */
-	_register operator--(void) { return _register(--value); }
+	reg16 operator--(void);
 
 	/*
 	 * Register unary decrement operator (postfix)
 	 */
-	_register operator--(int i) { return _register(value--); }
+	reg16 operator--(int i);
 
 	/*
 	 * Register equals operator
 	 */
-	bool operator==(const _register &other);
+	bool operator==(const reg16 &other);
 
 	/*
 	 * Register not-equals operator
 	 */
-	bool operator!=(const _register &other) { return !(*this == other); }
+	bool operator!=(const reg16 &other);
 
 	/*
 	 * Return a bit at a given offset
@@ -170,7 +170,7 @@ public:
 	/*
 	 * Clear register
 	 */
-	void clear(void) { value = LOW; }
+	void clear(void);
 
 	/*
 	 * Return a string representation of a register
@@ -185,17 +185,17 @@ public:
 	/*
 	 * Return a register value
 	 */
-	unsigned short get(void) { return value; }
+	unsigned short get(void);
 
 	/*
 	 * Return if a register value is zero
 	 */
-	bool is_zero(void) { return value == LOW; }
+	bool is_zero(void);
 
 	/*
 	 * Set a register value
 	 */
-	void set(unsigned short value) { this->value = value; }
+	void set(unsigned short value);
 
 	/*
 	 * Set a bit at a given offset

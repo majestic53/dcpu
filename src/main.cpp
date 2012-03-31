@@ -18,9 +18,9 @@
  */
 
 #include <iostream>
-#include "_cpu.hpp"
-#include "_memory.hpp"
-#include "_register.hpp"
+#include "dcpu.hpp"
+#include "mem128.hpp"
+#include "reg16.hpp"
 
 int main(int argc, char *argv[]) {
 
