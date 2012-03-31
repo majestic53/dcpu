@@ -97,10 +97,7 @@ std::string _cpu::dump(void) {
 	ss << "}" << std::endl << "M_REG { ";
 	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
 		ss << m_reg[i].dump() << ", ";
-	ss << "}" << std::endl << "--MEM--" << std::endl;
-
-	// print memory
-	ss << mem.dump(_memory::LOW, _memory::HIGH);
+	ss << "}";
 	return ss.str();
 }
 
@@ -118,9 +115,7 @@ bool _cpu::dump_to_file(const std::string &path) {
 	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
 		if(!m_reg[i].dump_to_file(path))
 			return false;
-
-	// write memory to file
-	return mem.dump_to_file(_memory::LOW, _memory::HIGH, path);
+	return true;
 }
 
 /*
@@ -139,7 +134,7 @@ bool _cpu::exec(unsigned short opt) {
 				code |= (1 << i);
 
 		// parse A
-		} else if(i > OP_LEN && i < OP_LEN + INPUT_LEN) {
+		} else if(i >= OP_LEN && i < OP_LEN + INPUT_LEN) {
 			if(opt & (1 << i))
 				a |= (1 << (i - OP_LEN));
 
@@ -377,7 +372,7 @@ void _cpu::_shl(unsigned short a, unsigned short b) {
 void _cpu::_shr(unsigned short a, unsigned short b) {
 	unsigned short value, a_val = get_value(a), b_val = get_value(b);
 
-	// TODO
+	// check for overflow
 	if((value = a_val >> b_val) >= a_val)
 		s_reg[OVERFLOW].set(0x1);
 	set_value(a, value);
