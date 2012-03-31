@@ -190,7 +190,7 @@ public:
 	/*
 	 * Return if a register value is zero
 	 */
-	bool is_zero(void) { return value != LOW; }
+	bool is_zero(void) { return value == LOW; }
 
 	/*
 	 * Set a register value
