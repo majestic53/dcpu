@@ -12,16 +12,16 @@ all: build dcpu
 clean:
 	rm -f $(SRC)*.o $(APP)
 
-build: _cpu.o _memory.o _register.o
+build: dcpu.o mem128.o reg16.o
 
 dcpu: build $(SRC)$(MAIN).cpp
-	$(CC) $(FLAG) -o $(APP) $(SRC)$(MAIN).cpp $(SRC)_cpu.o $(SRC)_memory.o $(SRC)_register.o
+	$(CC) $(FLAG) -o $(APP) $(SRC)$(MAIN).cpp $(SRC)dcpu.o $(SRC)mem128.o $(SRC)reg16.o
 
-_cpu.o: $(SRC)_cpu.cpp $(SRC)_cpu.hpp
-	$(CC) $(FLAG) -c $(SRC)_cpu.cpp -o $(SRC)_cpu.o
+dcpu.o: $(SRC)dcpu.cpp $(SRC)dcpu.hpp
+	$(CC) $(FLAG) -c $(SRC)dcpu.cpp -o $(SRC)dcpu.o
 
-_memory.o: $(SRC)_memory.cpp $(SRC)_memory.hpp
-	$(CC) $(FLAG) -c $(SRC)_memory.cpp -o $(SRC)_memory.o
+mem128.o: $(SRC)mem128.cpp $(SRC)mem128.hpp
+	$(CC) $(FLAG) -c $(SRC)mem128.cpp -o $(SRC)mem128.o
 
-_register.o: $(SRC)_register.cpp $(SRC)_register.hpp
-	$(CC) $(FLAG) -c $(SRC)_register.cpp -o $(SRC)_register.o
+reg16.o: $(SRC)reg16.cpp $(SRC)reg16.hpp
+	$(CC) $(FLAG) -c $(SRC)reg16.cpp -o $(SRC)reg16.o
