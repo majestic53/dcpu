@@ -105,8 +105,11 @@ void dcpu::_add(unsigned short a, unsigned short b) {
 	unsigned int value;
 
 	// check for overflow
+	s_reg[OVERFLOW].set(NOT_OVFLOW);
 	if((value = get_value(a) + get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(1);
+		s_reg[OVERFLOW].set(L_OVFLOW);
+
+	// set value
 	set_value(a, value);
 }
 
@@ -128,50 +131,75 @@ void dcpu::_bor(unsigned short a, unsigned short b) {
  * Division of A by B (sets overflow)
  */
 void dcpu::_div(unsigned short a, unsigned short b) {
-	unsigned int value;
+	unsigned short a_val = get_value(a), b_val = get_value(b);
+
+	// check if b_val == 0
+	if(!b_val) {
+		set_value(a, 0);
+		s_reg[OVERFLOW].set(NOT_OVFLOW);
+		return;
+	}
 
 	// check for overflow
-	if((value = get_value(a) / get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, value);
+	s_reg[OVERFLOW].set(((a_val << 16) / b_val) & H_OVFLOW);
+
+	// set value
+	set_value(a, a_val / b_val);
 }
 
 /*
- * Jump one instruction if !(A & B)
+ * Execute next instruction if ((A & B) != 0)
  */
 void dcpu::_ifb(unsigned short a, unsigned short b) {
-	if(!(get_value(a) & get_value(b)))
-		s_reg[PC]++;
+	if((get_value(a) & get_value(b)) != 0)
+		exec(mem.at((++s_reg[PC]).get()));
 }
 
 /*
- * Jump one instruction if (A != B)
+ * Execute next instruction if (A == B)
  */
 void dcpu::_ife(unsigned short a, unsigned short b) {
-	if(get_value(a) != get_value(b))
-		s_reg[PC]++;
+	if(get_value(a) == get_value(b))
+		exec(mem.at((++s_reg[PC]).get()));
 }
 
 /*
- * Jump one instruction if (A <= B)
+ * Execute next instruction if (A > B)
  */
 void dcpu::_ifg(unsigned short a, unsigned short b) {
-	if(get_value(a) <= get_value(b))
-		s_reg[PC]++;
+	if(get_value(a) > get_value(b))
+		exec(mem.at((++s_reg[PC]).get()));
 }
 
 /*
- * Jump one instruction if (A == B)
+ * Execute next instruction if (A != B)
  */
 void dcpu::_ifn(unsigned short a, unsigned short b) {
-	if(get_value(a) == get_value(b))
-		s_reg[PC]++;
+	if(get_value(a) != get_value(b))
+		exec(mem.at((++s_reg[PC]).get()));
+}
+
+/*
+ * Push the address of the next word onto the stack
+ */
+void dcpu::_jsr(unsigned short a) {
+	set_value(PUSH, (++s_reg[PC]).get());
+	s_reg[PC].set(a);
 }
 
 /*
  * Modulus of A by B
  */
 void dcpu::_mod(unsigned short a, unsigned short b) {
+	unsigned short b_val = get_value(b);
+
+	// check if b_val == 0
+	if(!b_val) {
+		set_value(a, 0);
+		return;
+	}
+
+	// set value
 	set_value(a, get_value(a) % get_value(b));
 }
 
@@ -179,11 +207,12 @@ void dcpu::_mod(unsigned short a, unsigned short b) {
  * Multiplication of B from A (sets overflow)
  */
 void dcpu::_mul(unsigned short a, unsigned short b) {
-	unsigned int value;
+	unsigned int value = get_value(a) * get_value(b);
 
 	// check for overflow
-	if((value = get_value(a) * get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(1);
+	s_reg[OVERFLOW].set((value >> 16) & H_OVFLOW);
+
+	// set value
 	set_value(a, value);
 }
 
@@ -198,24 +227,26 @@ void dcpu::_set(unsigned short a, unsigned short b) {
  * Shift-left A by B (sets overflow)
  */
 void dcpu::_shl(unsigned short a, unsigned short b) {
-	unsigned int value;
+	unsigned short a_val = get_value(a), b_val = get_value(b);
 
 	// check for overflow
-	if((value = get_value(a) << get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, value);
+	s_reg[OVERFLOW].set(((a_val << b_val) >> 16) & H_OVFLOW);
+
+	// set value
+	set_value(a, a_val << b_val);
 }
 
 /*
  * Shift-right A by B (sets overflow)
  */
 void dcpu::_shr(unsigned short a, unsigned short b) {
-	unsigned short value, a_val = get_value(a), b_val = get_value(b);
+	unsigned short a_val = get_value(a), b_val = get_value(b);
 
 	// check for overflow
-	if((value = a_val >> b_val) >= a_val)
-		s_reg[OVERFLOW].set(1);
-	set_value(a, value);
+	s_reg[OVERFLOW].set(((a_val << 16) >> b_val) & H_OVFLOW);
+
+	// set value
+	set_value(a, a_val >> b_val);
 }
 
 /*
@@ -225,8 +256,11 @@ void dcpu::_sub(unsigned short a, unsigned short b) {
 	unsigned short a_val = get_value(a), b_val = get_value(b);
 
 	// check for overflow
+	s_reg[OVERFLOW].set(NOT_OVFLOW);
 	if(b_val > a_val)
-		s_reg[OVERFLOW].set(1);
+		s_reg[OVERFLOW].set(H_OVFLOW);
+
+	// set value
 	set_value(a, a_val - b_val);
 }
 
@@ -285,23 +319,33 @@ bool dcpu::exec(unsigned short op) {
 	for(size_t i = 0; i < 8 * sizeof(short); ++i)
 
 		// parse code
-		if(i < OP_LEN) {
+		if(i < B_OP_LEN) {
 			if(op & (1 << i))
 				code |= (1 << i);
 
 		// parse A
-		} else if(i >= OP_LEN && i < OP_LEN + INPUT_LEN) {
+		} else if(i >= B_OP_LEN && i < B_OP_LEN + INPUT_LEN) {
 			if(op & (1 << i))
-				a |= (1 << (i - OP_LEN));
+				a |= (1 << (i - B_OP_LEN));
 
 		// parse B
 		} else {
 			if(op & (1 << i))
-				b |= (1 << (i - (OP_LEN + INPUT_LEN)));
+				b |= (1 << (i - (B_OP_LEN + INPUT_LEN)));
 		}
+
+	// increment pc by one
+	s_reg[PC]++;
 
 	// execute command based on code
 	switch(code) {
+		case NB:
+			switch(a) {
+				case JSR: _jsr(b);
+					break;
+				default: return false;
+			}
+			break;
 		case SET: _set(a, b);
 			break;
 		case ADD: _add(a, b);
@@ -371,7 +415,7 @@ unsigned short dcpu::get_value(unsigned short location) {
 
 	// value at address ((PC + 1) + register value)
 	else if(location >= L_OFF && location <= H_OFF)
-		return mem.at(mem.at(s_reg[PC].get() + 1) + m_reg[location % M_REG_COUNT].get());
+		return mem.at(mem.at(s_reg[PC]++.get()) + m_reg[location % M_REG_COUNT].get());
 
 	// value at address in SP and increment SP
 	else if(location == POP)
@@ -391,7 +435,7 @@ unsigned short dcpu::get_value(unsigned short location) {
 
 	// value in PC
 	else if(location == PC_VAL)
-		return s_reg[PC].get();
+		return s_reg[PC]++.get();
 
 	// value in overflow
 	else if(location == OVER_F)
@@ -399,11 +443,11 @@ unsigned short dcpu::get_value(unsigned short location) {
 
 	// value of address at PC + 1
 	else if(location == ADR_OFF)
-		return mem.at(mem.at(s_reg[PC].get() + 1));
+		return mem.at(mem.at(s_reg[PC]++.get()));
 
 	// value of PC + 1
 	else if(location == LIT_OFF)
-		return mem.at(s_reg[PC].get() + 1);
+		return mem.at(s_reg[PC]++.get());
 
 	// Literal value from 0 - 31
 	else if(location >= L_LIT && location <= H_LIT)
@@ -461,7 +505,7 @@ void dcpu::set_value(unsigned short location, unsigned short value) {
 
 	// value at address ((PC + 1) + register value)
 	else if(location >= L_OFF && location <= H_OFF)
-		mem.set(mem.at(s_reg[PC].get() + 1) + m_reg[location % M_REG_COUNT].get(), value);
+		mem.set(mem.at(s_reg[PC]++.get()) + m_reg[location % M_REG_COUNT].get(), value);
 
 	// value at address in SP and increment SP
 	else if(location == POP)
@@ -481,7 +525,7 @@ void dcpu::set_value(unsigned short location, unsigned short value) {
 
 	// value in PC
 	else if(location == PC_VAL)
-		s_reg[PC].set(value);
+		s_reg[PC]++.set(value);
 
 	// value in overflow
 	else if(location == OVER_F)
@@ -489,5 +533,5 @@ void dcpu::set_value(unsigned short location, unsigned short value) {
 
 	// value of address at PC + 1
 	else if(location == ADR_OFF)
-		mem.set(mem.at(s_reg[PC].get() + 1), value);
+		mem.set(mem.at(s_reg[PC]++.get()), value);
 }

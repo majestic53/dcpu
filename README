@@ -1,6 +1,6 @@
 Not much here yet. I'm following Notch's description of a spec for a 16-bit cpu called "dcpu" for fun.
 
-A description can be found at: http://notch.tumblr.com/post/20056289891/start-classified-transmission.
+A description can be found at: http://0x10c.com/doc/dcpu-16.txt.
 
 
 ~REGISTERS
@@ -8,7 +8,7 @@ Main:	A, B, C, X, Y, Z, I, J
 System:	PC, SP, OVERFLOW
 
 
-~OPCODE STRUCTURE
+~BASIC OPCODE STRUCTURE
 --------------------------
 | BBBBBB | AAAAAA | OOOO |
 --------------------------
@@ -17,21 +17,36 @@ System:	PC, SP, OVERFLOW
 [0x07 - 0x0C]:	A operand
 [0x0D - 0x16]:	Opcode
 
+~BASIC OPCODES
+Non-Basic:	0x00
+Assignment:	SET (0x01)
+Arithmetic:	ADD (0x02), SUB (0x03), MUL (0x04), DIV (0x05), MOD (0x06)
+Bit:		SHL (0x07), SHR (0x08)
+Binary:		AND (0x09), BOR (binary-OR) (0x0A), XOR (0x0B)
+Condition:	IFB (0x0F), IFE (0x0C), IFG (0x0E), IFN (0x0D)
 
-~OPCODES
-Assignment:	SET (0x1)
-Arithmetic:	ADD (0x2), SUB (0x3), MUL (0x4), DIV (0x5), MOD (0x6)
-Bit:		SHL (0x7), SHR (0x8)
-Binary:		AND (0x9), BOR (binary-OR) (0xA), XOR (0xB)
-Jump:		IFB (0xF), IFE (0xC), IFG (0xE), IFN (0xD)
+
+~NON-BASIC OPCODE STRUCTURE
+--------------------------
+| AAAAAA | OOOOOO | 0000 |
+--------------------------
+0x00    0x06     0x0C   0x16
+[0x00 - 0x06]:	A operand
+[0x07 - 0x0C]:	Opcode
+[0x0D - 0x16]:	Zeros
+
+~NON-BASIC OPCODES
+Reserved:	0x00
+Jump to:	JRS(0x01)
+Reserved:	0x02 - 0x3f
 
 
 ~OPERANDS
 [0 - 7]: 	R [A, B, C, X, Y, Z, I, J]
 [8 - 15]:	M(R)
-[16 - 23]:	M(M(PC + 1) + R)
+[16 - 23]:	M(M(PC++) + R)
 [24 - 26]:	M(SP++) [POP], M(SP) [PEEK], M(--SP) [PUSH]
 [27 - 29]:	S [SP, PC, OVERFLOW]
-[30]:		M(M(PC + 1))
-[31]:		M(PC + 1)
+[30]:		M(M(PC++))
+[31]:		M(PC++)
 [32 - 63]:	Literal (0 - 31)

@@ -31,20 +31,20 @@ public:
 	/*
 	 * Main register count
 	 */
-	static const unsigned char M_REG_COUNT = 8;
+	static const unsigned char M_REG_COUNT = 0x08;
 
 	/*
 	 * System register count
 	 */
-	static const unsigned char S_REG_COUNT = 3;
+	static const unsigned char S_REG_COUNT = 0x03;
 
 	/*
 	 * Literal count
 	 */
-	static const unsigned char LIT_COUNT = 32;
+	static const unsigned char LIT_COUNT = 0x20;
 
 	/*
-	 * Opcode section lengths
+	 * Basic opcode section lengths
 	 *
 	 * 	--------------------------
 	 * 	| BBBBBB | AAAAAA | OOOO |
@@ -52,9 +52,19 @@ public:
 	 *
 	 * 0x00	   0x06		0x0C	0x16
 	 *
+	 *
+	 * Non-Basic opcode section lengths
+	 *
+	 * 	--------------------------
+	 * 	| AAAAAA | oooooo | 0000 |
+	 * 	--------------------------
+	 *
+	 * 0x00	   0x06		0x0C	0x16
+	 *
 	 */
-	static const unsigned char OP_LEN = 4;
-	static const unsigned char INPUT_LEN = 6;
+	static const unsigned char B_OP_LEN = 0x04;
+	static const unsigned char NB_OP_LEN = 0x06;
+	static const unsigned char INPUT_LEN = 0x06;
 
 private:
 
@@ -99,24 +109,29 @@ private:
 	unsigned short get_value(unsigned short location);
 
 	/*
-	 * Jump one instruction if !(A & B)
+	 * Execute next instruction if ((A & B) != 0)
 	 */
 	void _ifb(unsigned short a, unsigned short b);
 
 	/*
-	 * Jump one instruction if (A != B)
+	 * Execute next instruction if (A == B)
 	 */
 	void _ife(unsigned short a, unsigned short b);
 
 	/*
-	 * Jump one instruction if (A <= B)
+	 * Execute next instruction if (A > B)
 	 */
 	void _ifg(unsigned short a, unsigned short b);
 
 	/*
-	 * Jump one instruction if (A == B)
+	 * Execute next instruction if (A != B)
 	 */
 	void _ifn(unsigned short a, unsigned short b);
+
+	/*
+	 * Push the address of the next word onto the stack
+	 */
+	void _jsr(unsigned short a);
 
 	/*
 	 * Modulus of A by B
@@ -171,17 +186,27 @@ public:
 	enum S_REG { PC, SP, OVERFLOW };
 
 	/*
-	 * Supported opt-codes
+	 * Supported basic opcodes
 	 */
-	enum OPT { SET = 1, ADD, SUB, MUL, DIV, MOD, SHL, SHR,
+	enum B_OP { NB, SET, ADD, SUB, MUL, DIV, MOD, SHL, SHR,
 		AND, BOR, XOR, IFE, IFN, IFG, IFB };
+
+	/*
+	 * Supported non-basic opcodes
+	 */
+	enum NB_OP { JSR = 0x01 };
 
 	/*
 	 * Reserved values
 	 */
-	enum SPEC { L_REG, H_REG = 7, L_VAL, H_VAL = 15, L_OFF, H_OFF = 23,
+	enum SPEC { L_REG, H_REG = 0x07, L_VAL, H_VAL = 0x0F, L_OFF, H_OFF = 0x17,
 		POP, PEEK, PUSH, SP_VAL, PC_VAL, OVER_F, ADR_OFF, LIT_OFF,
-		L_LIT = 32, H_LIT = 63 };
+		L_LIT = 0x20, H_LIT = 0x3F };
+
+	/*
+	 * Overflow
+	 */
+	enum OVER { NOT_OVFLOW = 0x0, L_OVFLOW = 0x1, H_OVFLOW = 0xFFFF };
 
 	/*
 	 * Cpu constructor
