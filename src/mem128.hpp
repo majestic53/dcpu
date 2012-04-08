@@ -22,32 +22,15 @@
 
 #include <cstring>
 #include <string>
+#include "types.hpp"
 
 class mem128 {
-public:
-
-	/*
-	 * Zero
-	 */
-	static const unsigned short ZERO = 0x0;
-
-	/*
-	 * Word count
-	 */
-	static const unsigned int COUNT = 0x10000;
-
-	/*
-	 * Word boundaries
-	 */
-	static const unsigned short LOW = 0x0;
-	static const unsigned short HIGH = COUNT - 1;
-
 private:
 
 	/*
 	 * Words
 	 */
-	unsigned short words[COUNT];
+	word words[COUNT];
 
 public:
 
@@ -64,7 +47,7 @@ public:
 	/*
 	 * Mem constructor
 	 */
-	mem128(const unsigned short (&words)[COUNT]);
+	mem128(const word (&words)[COUNT]);
 
 	/*
 	 * Mem destructor
@@ -89,7 +72,7 @@ public:
 	/*
 	 * Return value at offset
 	 */
-	unsigned short at(unsigned short offset);
+	word &at(word offset);
 
 	/*
 	 * Clear mem
@@ -99,7 +82,7 @@ public:
 	/*
 	 * Return a string representation of a given offset and range
 	 */
-	std::string dump(unsigned short offset, unsigned short range);
+	std::string dump(word offset, word range);
 
 	/*
 	 * Return a string representation of all memory
@@ -109,27 +92,27 @@ public:
 	/*
 	 * Dump memory to file at a given path
 	 */
-	bool dump_to_file(unsigned short offset, unsigned short range, const std::string &path);
+	bool dump_to_file(word offset, word range, const std::string &path);
 
 	/*
 	 * Fill mem from offset to offset and range offset with a given value
 	 */
-	void fill(unsigned short offset, unsigned short range, unsigned short value);
+	void fill(word offset, word range, word value);
 
 	/*
 	 * Fill mem with a given value
 	 */
-	void fill_all(unsigned short value);
+	void fill_all(word value);
 
 	/*
 	 * Set value at offset
 	 */
-	void set(unsigned short offset, unsigned short value);
+	void set(word offset, word value);
 
 	/*
 	 * Set value at offset
 	 */
-	void set(unsigned short offset, unsigned short range, unsigned short *value);
+	void set(word offset, word range, word *value);
 };
 
 #endif

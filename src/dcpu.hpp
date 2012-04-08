@@ -24,6 +24,7 @@
 #include <vector>
 #include "mem128.hpp"
 #include "reg16.hpp"
+#include "types.hpp"
 
 class dcpu {
 public:
@@ -31,17 +32,17 @@ public:
 	/*
 	 * Main register count
 	 */
-	static const unsigned char M_REG_COUNT = 0x08;
+	static const word M_REG_COUNT = 0x08;
 
 	/*
 	 * System register count
 	 */
-	static const unsigned char S_REG_COUNT = 0x03;
+	static const word S_REG_COUNT = 0x03;
 
 	/*
 	 * Literal count
 	 */
-	static const unsigned char LIT_COUNT = 0x20;
+	static const word LIT_COUNT = 0x20;
 
 	/*
 	 * Basic opcode section lengths
@@ -62,9 +63,9 @@ public:
 	 * 0x00	   0x06		0x0C	0x16
 	 *
 	 */
-	static const unsigned char B_OP_LEN = 0x04;
-	static const unsigned char NB_OP_LEN = 0x06;
-	static const unsigned char INPUT_LEN = 0x06;
+	static const word B_OP_LEN = 0x04;
+	static const word NB_OP_LEN = 0x06;
+	static const word INPUT_LEN = 0x06;
 
 private:
 
@@ -84,94 +85,129 @@ private:
 	mem128 mem;
 
 	/*
+	 * Current state
+	 */
+	word state;
+
+	/*
+	 * Current cycle
+	 */
+	size_t cycle;
+
+	/*
 	 * Add B to A (sets overflow)
 	 */
-	void _add(unsigned short a, unsigned short b);
+	void _add(word a, word b);
 
 	/*
 	 * Binary AND of A and B
 	 */
-	void _and(unsigned short a, unsigned short b);
+	void _and(word a, word b);
 
 	/*
 	 * Binary OR of A and B
 	 */
-	void _bor(unsigned short a, unsigned short b);
+	void _bor(word a, word b);
 
 	/*
 	 * Division of A by B (sets overflow)
 	 */
-	void _div(unsigned short a, unsigned short b);
-
-	/*
-	 * Return a value held at a given location
-	 */
-	unsigned short get_value(unsigned short location);
+	void _div(word a, word b);
 
 	/*
 	 * Execute next instruction if ((A & B) != 0)
 	 */
-	void _ifb(unsigned short a, unsigned short b);
+	void _ifb(word a, word b);
 
 	/*
 	 * Execute next instruction if (A == B)
 	 */
-	void _ife(unsigned short a, unsigned short b);
+	void _ife(word a, word b);
 
 	/*
 	 * Execute next instruction if (A > B)
 	 */
-	void _ifg(unsigned short a, unsigned short b);
+	void _ifg(word a, word b);
 
 	/*
 	 * Execute next instruction if (A != B)
 	 */
-	void _ifn(unsigned short a, unsigned short b);
+	void _ifn(word a, word b);
 
 	/*
 	 * Push the address of the next word onto the stack
 	 */
-	void _jsr(unsigned short a);
+	void _jsr(word a);
 
 	/*
 	 * Modulus of A by B
 	 */
-	void _mod(unsigned short a, unsigned short b);
+	void _mod(word a, word b);
 
 	/*
 	 * Multiplication of B from A (sets overflow)
 	 */
-	void _mul(unsigned short a, unsigned short b);
+	void _mul(word a, word b);
 
 	/*
 	 * Set A to B
 	 */
-	void _set(unsigned short a, unsigned short b);
-
-	/*
-	 * Set a value held at a given location
-	 */
-	void set_value(unsigned short location, unsigned short value);
+	void _set(word a, word b);
 
 	/*
 	 * Shift-left A by B (sets overflow)
 	 */
-	void _shl(unsigned short a, unsigned short b);
+	void _shl(word a, word b);
 
 	/*
 	 * Shift-right A by B (sets overflow)
 	 */
-	void _shr(unsigned short a, unsigned short b);
+	void _shr(word a, word b);
 
 	/*
 	 * Subtraction of B from A (sets overflow)
 	 */
-	void _sub(unsigned short a, unsigned short b);
+	void _sub(word a, word b);
 
 	/*
 	 * Exclusive-OR of A and B
 	 */
-	void _xor(unsigned short a, unsigned short b);
+	void _xor(word a, word b);
+
+	/*
+	 * Execute a single command
+	 */
+	bool exec(word op);
+
+	/*
+	 * Execute a series of commands
+	 */
+	bool exec(std::vector<word> &op);
+
+	/*
+	 * Execute a series of commands starting at offset to range
+	 */
+	bool exec(word offset, word range, std::vector<word> &op);
+
+	/*
+	 * Return an address of a value at a given location
+	 */
+	word *get_address(word value);
+
+	/*
+	 * Return a value held at a given value
+	 */
+	word get_value(word value);
+
+	/*
+	 * Set a value held at a given location
+	 */
+	void set_value(word *location, word value);
+
+	/*
+	 * Perform a state change
+	 */
+	bool state_change(word state);
 
 public:
 
@@ -183,7 +219,7 @@ public:
 	/*
 	 * System registers
 	 */
-	enum S_REG { PC, SP, OVERFLOW };
+	enum S_REG { SP, PC, OVERFLOW };
 
 	/*
 	 * Supported basic opcodes
@@ -194,19 +230,19 @@ public:
 	/*
 	 * Supported non-basic opcodes
 	 */
-	enum NB_OP { JSR = 0x01 };
+	enum NB_OP { RES, JSR };
 
 	/*
-	 * Reserved values
+	 * States
 	 */
-	enum SPEC { L_REG, H_REG = 0x07, L_VAL, H_VAL = 0x0F, L_OFF, H_OFF = 0x17,
+	enum STATE { INIT, RUN, HALT };
+
+	/*
+	 * Values types
+	 */
+	enum VALUE { L_REG, H_REG = 0x07, L_VAL, H_VAL = 0x0F, L_OFF, H_OFF = 0x17,
 		POP, PEEK, PUSH, SP_VAL, PC_VAL, OVER_F, ADR_OFF, LIT_OFF,
 		L_LIT = 0x20, H_LIT = 0x3F };
-
-	/*
-	 * Overflow
-	 */
-	enum OVER { NOT_OVFLOW = 0x0, L_OVFLOW = 0x1, H_OVFLOW = 0xFFFF };
 
 	/*
 	 * Cpu constructor
@@ -226,7 +262,7 @@ public:
 	/*
 	 * Cpu constructor
 	 */
-	dcpu(const reg16 (&m_reg)[M_REG_COUNT], const reg16 (&s_reg)[S_REG_COUNT], const mem128 &mem);
+	dcpu(const reg16 (&m_reg)[M_REG_COUNT], const reg16 (&s_reg)[S_REG_COUNT], const mem128 &mem, word state, size_t cycle);
 
 	/*
 	 * Cpu destructor
@@ -249,6 +285,11 @@ public:
 	bool operator!=(const dcpu &other);
 
 	/*
+	 * Returns a Cpu cycle count
+	 */
+	size_t cycles(void);
+
+	/*
 	 * Return a string representation of a cpu
 	 */
 	std::string dump(void);
@@ -259,24 +300,19 @@ public:
 	bool dump_to_file(const std::string &path);
 
 	/*
-	 * Execute a single command
+	 * Halt a Cpu
 	 */
-	bool exec(unsigned short op);
+	bool halt(void);
 
 	/*
-	 * Execute a series of commands
+	 * Returns a Cpu running status
 	 */
-	bool exec(std::vector<unsigned short> &op);
-
-	/*
-	 * Execute a series of commands starting at offset to range
-	 */
-	bool exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &op);
+	bool is_running(void);
 
 	/*
 	 * Return a main register
 	 */
-	reg16 &m_register(unsigned char reg);
+	reg16 &m_register(word reg);
 
 	/*
 	 * Return memory
@@ -289,9 +325,14 @@ public:
 	void reset(void);
 
 	/*
+	 * Run a Cpu
+	 */
+	bool run(void);
+
+	/*
 	 * Return a system register
 	 */
-	reg16 &s_register(unsigned char reg);
+	reg16 &s_register(word reg);
 };
 
 #endif

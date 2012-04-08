@@ -39,7 +39,7 @@ mem128::mem128(const mem128 &other) {
 /*
  * Mem constructor
  */
-mem128::mem128(const unsigned short (&words)[COUNT]) {
+mem128::mem128(const word (&words)[COUNT]) {
 	memcpy(this->words, words, COUNT);
 }
 
@@ -74,7 +74,7 @@ bool mem128::operator==(const mem128 &other) {
 		return true;
 
 	// check attributes
-	for(unsigned short i = 0; i < COUNT; ++i)
+	for(word i = 0; i < COUNT; ++i)
 		if(words[i] != other.words[i])
 			return false;
 	return true;
@@ -90,7 +90,7 @@ bool mem128::operator!=(const mem128 &other) {
 /*
  * Return value at offset
  */
-unsigned short mem128::at(unsigned short offset) {
+word &mem128::at(word offset) {
 	return words[offset];
 }
 
@@ -98,26 +98,25 @@ unsigned short mem128::at(unsigned short offset) {
  * Clear mem
  */
 void mem128::clear(void) {
-	fill_all(ZERO);
+	fill_all(LOW);
 }
 
 /*
  * Return a string representation of a given offset and range
  */
-std::string mem128::dump(unsigned short offset, unsigned short range) {
+std::string mem128::dump(word offset, word range) {
 	std::stringstream ss;
 
 	// iterate through elements
-	for(unsigned short i = 0; i < range; ++i) {
+	for(word i = 0; i < range; ++i) {
 		if(!(i % 16)) {
 			if(i)
 				ss << std::endl;
-			ss << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << offset << " | ";
-			offset += 16;
+			ss << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (offset + i) << " | ";
 		}
 
 		// convert each element into hex
-		ss << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (unsigned)(unsigned short) words[i] << " ";
+		ss << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (unsigned)(word) words[offset + i] << " ";
 	}
 	return ss.str();
 }
@@ -132,7 +131,7 @@ std::string mem128::dump_all(void) {
 /*
  * Dump memory to file at a given path
  */
-bool mem128::dump_to_file(unsigned short offset, unsigned short range, const std::string &path) {
+bool mem128::dump_to_file(word offset, word range, const std::string &path) {
 
 	// attempt to open file at path
 	std::ofstream file(path.c_str(), std::ios::out | std::ios::ate | std::ios::binary);
@@ -140,8 +139,8 @@ bool mem128::dump_to_file(unsigned short offset, unsigned short range, const std
 		return false;
 
 	// write memory to file
-	for(unsigned short i = 0; i < range; ++i)
-		file.write(reinterpret_cast<const char *>(&words[offset + i]), sizeof(unsigned short));
+	for(word i = 0; i < range; ++i)
+		file.write(reinterpret_cast<const char *>(&words[offset + i]), sizeof(word));
 	file.close();
 	return true;
 }
@@ -149,34 +148,34 @@ bool mem128::dump_to_file(unsigned short offset, unsigned short range, const std
 /*
  * Fill mem from start to end offset with a given value
  */
-void mem128::fill(unsigned short offset, unsigned short range, unsigned short value) {
-	unsigned short finish = offset + range;
+void mem128::fill(word offset, word range, word value) {
+	word finish = offset + range;
 
 	// assign values
-	for(unsigned short i = offset; i < finish; ++i)
+	for(word i = offset; i < finish; ++i)
 		words[i] = value;
 }
 
 /*
  * Fill mem with a given value
  */
-void mem128::fill_all(unsigned short value) {
+void mem128::fill_all(word value) {
 	fill(LOW, HIGH, value);
 }
 
 /*
  * Set value at offset
  */
-void mem128::set(unsigned short offset, unsigned short value) {
+void mem128::set(word offset, word value) {
 	words[offset] = value;
 }
 
 /*
  * Set value at offset
  */
-void mem128::set(unsigned short offset, unsigned short range, unsigned short *value) {
+void mem128::set(word offset, word range, word *value) {
 
 	// assign values
-	for(unsigned short i = 0; i < range; ++i)
+	for(word i = 0; i < range; ++i)
 		words[i + offset] = value[i];
 }

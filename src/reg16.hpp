@@ -21,6 +21,7 @@
 #define REG16_HPP_
 
 #include <string>
+#include "types.hpp"
 
 class reg16 {
 private:
@@ -28,19 +29,9 @@ private:
 	/*
 	 * Value
 	 */
-	unsigned short value;
+	word value;
 
 public:
-
-	/*
-	 * Zero
-	 */
-	static const unsigned short LOW = 0x0;
-
-	/*
-	 * Maximum value
-	 */
-	static const unsigned short HIGH = 0xFFFF;
 
 	/*
 	 * Register constructor
@@ -55,7 +46,7 @@ public:
 	/*
 	 * Register constructor
 	 */
-	reg16(unsigned short reg);
+	reg16(word reg);
 
 	/*
 	 * Register destructor
@@ -165,7 +156,7 @@ public:
 	/*
 	 * Return a bit at a given offset
 	 */
-	bool bit(unsigned char offset);
+	bool bit(word offset);
 
 	/*
 	 * Clear register
@@ -185,7 +176,7 @@ public:
 	/*
 	 * Return a register value
 	 */
-	unsigned short get(void);
+	word &get(void);
 
 	/*
 	 * Return if a register value is zero
@@ -195,12 +186,12 @@ public:
 	/*
 	 * Set a register value
 	 */
-	void set(unsigned short value);
+	void set(word value);
 
 	/*
 	 * Set a bit at a given offset
 	 */
-	void set_bit(unsigned char offset);
+	void set_bit(word offset);
 };
 
 #endif

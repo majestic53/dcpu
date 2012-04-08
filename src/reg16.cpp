@@ -39,7 +39,7 @@ reg16::reg16(const reg16 &other) : value(other.value) {
 /*
  * Register constructor
  */
-reg16::reg16(unsigned short reg) : value(reg) {
+reg16::reg16(word reg) : value(reg) {
 	return;
 }
 
@@ -206,7 +206,7 @@ reg16 reg16::operator--(int i) {
 /*
  * Return a bit at a given offset
  */
-bool reg16::bit(unsigned char offset) {
+bool reg16::bit(word offset) {
 
 	// check offset
 	if(offset >= 0x8)
@@ -228,7 +228,7 @@ std::string reg16::dump(void) {
 	std::stringstream ss;
 
 	// convert element into hex
-	ss << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (unsigned)(unsigned short) value;
+	ss << "0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << (unsigned)(word) value;
 	return ss.str();
 }
 
@@ -243,7 +243,7 @@ bool reg16::dump_to_file(const std::string &path) {
 		return false;
 
 	// write memory to file
-	file.write(reinterpret_cast<const char *>(&value), sizeof(unsigned short));
+	file.write(reinterpret_cast<const char *>(&value), sizeof(word));
 	file.close();
 	return true;
 }
@@ -251,7 +251,7 @@ bool reg16::dump_to_file(const std::string &path) {
 /*
  * Return a register value
  */
-unsigned short reg16::get(void) {
+word &reg16::get(void) {
 	return value;
 }
 
@@ -265,14 +265,14 @@ bool reg16::is_zero(void) {
 /*
  * Set a register value
  */
-void reg16::set(unsigned short value) {
+void reg16::set(word value) {
 	this->value = value;
 }
 
 /*
  * Set a bit at a given offset
  */
-void reg16::set_bit(unsigned char offset) {
+void reg16::set_bit(word offset) {
 
 	// check offset
 	if(offset >= 0x8)

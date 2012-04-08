@@ -1,5 +1,5 @@
 /*
- * main.cpp
+ * dcpu.hpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
@@ -17,14 +17,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include "dcpu.hpp"
-#include "mem128.hpp"
-#include "reg16.hpp"
-#include "types.hpp"
+#ifndef TYPES_HPP_
+#define TYPES_HPP_
 
-int main(int argc, char *argv[]) {
+/*
+ * Word size
+ */
+typedef unsigned short word;
+typedef unsigned int dword;
 
-	std::cout << "DONE." << std::endl;
-	return 0;
-}
+/*
+ * Minimum value
+ */
+static const word LOW = 0x0;
+
+/*
+ * Flag value
+ */
+static const word FLAG = 0x1;
+
+/*
+ * Maximum value
+ */
+static const word HIGH = 0xFFFF;
+
+/*
+ * Word count
+ */
+static const dword COUNT = 0x10000;
+
+#endif

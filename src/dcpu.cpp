@@ -17,18 +17,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+
 #include <sstream>
 #include "dcpu.hpp"
 
 /*
  * Cpu constructor
  */
-dcpu::dcpu(void) { reset(); }
+dcpu::dcpu(void) {
+	reset();
+}
 
 /*
  * Cpu constructor
  */
-dcpu::dcpu(const dcpu &other) : m_reg(other.m_reg), s_reg(other.s_reg), mem(other.mem) {
+dcpu::dcpu(const dcpu &other) : m_reg(other.m_reg), s_reg(other.s_reg), mem(other.mem),
+		state(other.state), cycle(other.cycle) {
 	return;
 }
 
@@ -42,8 +47,8 @@ dcpu::dcpu(const mem128 &mem) : mem(mem) {
 /*
  * Cpu constructor
  */
-dcpu::dcpu(const reg16 (&m_reg)[M_REG_COUNT], const reg16 (&s_reg)[S_REG_COUNT], const mem128 &mem) : m_reg(m_reg),
-		s_reg(s_reg), mem(mem) {
+dcpu::dcpu(const reg16 (&m_reg)[M_REG_COUNT], const reg16 (&s_reg)[S_REG_COUNT], const mem128 &mem,
+		word state, size_t cycle) : m_reg(m_reg), s_reg(s_reg), mem(mem), state(state), cycle(cycle) {
 	return;
 }
 
@@ -64,11 +69,13 @@ dcpu &dcpu::operator=(const dcpu &other) {
 		return *this;
 
 	// set attributes
-	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
-		m_reg[i] == other.m_reg[i];
-	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
-		s_reg[i] == other.s_reg[i];
-	mem == other.mem;
+	for(word i = 0; i < M_REG_COUNT; ++i)
+		m_reg[i] = other.m_reg[i];
+	for(word i = 0; i < S_REG_COUNT; ++i)
+		s_reg[i] = other.s_reg[i];
+	mem = other.mem;
+	state = other.state;
+	cycle = other.cycle;
 	return *this;
 }
 
@@ -82,13 +89,15 @@ bool dcpu::operator==(const dcpu &other) {
 		return true;
 
 	// check attributes
-	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+	for(word i = 0; i < M_REG_COUNT; ++i)
 		if(m_reg[i] != other.m_reg[i])
 			return false;
-	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+	for(word i = 0; i < S_REG_COUNT; ++i)
 		if(s_reg[i] != other.s_reg[i])
 			return false;
-	return mem == other.mem;
+	return mem == other.mem
+			&& state == other.state
+			&& cycle == other.cycle;
 }
 
 /*
@@ -101,174 +110,376 @@ bool dcpu::operator!=(const dcpu &other) {
 /*
  * Add B to A (sets overflow)
  */
-void dcpu::_add(unsigned short a, unsigned short b) {
-	unsigned int value;
+void dcpu::_add(word a, word b) {
 
-	// check for overflow
-	s_reg[OVERFLOW].set(NOT_OVFLOW);
-	if((value = get_value(a) + get_value(b)) >= 0x10000)
-		s_reg[OVERFLOW].set(L_OVFLOW);
+	// retrieve address
+	word *a_addr = get_address(a);
 
-	// set value
-	set_value(a, value);
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+	dword res = a_val + b_val;
+
+	// set overflow
+	if(res >= HIGH)
+		s_reg[OVERFLOW].set(FLAG);
+	else
+		s_reg[OVERFLOW].set(LOW);
+
+	// perform addition
+	set_value(a_addr, res);
+	cycle += 2;
 }
 
 /*
  * Binary AND of A and B
  */
-void dcpu::_and(unsigned short a, unsigned short b) {
-	set_value(a, get_value(a) & get_value(b));
+void dcpu::_and(word a, word b) {
+
+	// retrieve address
+	word *a_addr = get_address(a);
+
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// perform binary operation
+	set_value(a_addr, a_val & b_val);
+	++cycle;
 }
 
 /*
  * Binary OR of A and B
  */
-void dcpu::_bor(unsigned short a, unsigned short b) {
-	set_value(a, get_value(a) | get_value(b));
+void dcpu::_bor(word a, word b) {
+
+	// retrieve address
+	word *a_addr = get_address(a);
+
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// perform binary operation
+	set_value(a_addr, a_val | b_val);
+	++cycle;
 }
 
 /*
  * Division of A by B (sets overflow)
  */
-void dcpu::_div(unsigned short a, unsigned short b) {
-	unsigned short a_val = get_value(a), b_val = get_value(b);
+void dcpu::_div(word a, word b) {
 
-	// check if b_val == 0
+	// retrieve address
+	word *a_addr = get_address(a);
+
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// check if b value is zero
 	if(!b_val) {
-		set_value(a, 0);
-		s_reg[OVERFLOW].set(NOT_OVFLOW);
-		return;
+
+		// set overflow
+		s_reg[OVERFLOW].set(LOW);
+		set_value(a_addr, LOW);
+	} else {
+
+		// set overflow
+		s_reg[OVERFLOW].set(((a_val << 16) / b_val) & HIGH);
+
+		// perform addition
+		set_value(a_addr, a_val / b_val);
 	}
-
-	// check for overflow
-	s_reg[OVERFLOW].set(((a_val << 16) / b_val) & H_OVFLOW);
-
-	// set value
-	set_value(a, a_val / b_val);
+	cycle += 3;
 }
 
 /*
  * Execute next instruction if ((A & B) != 0)
  */
-void dcpu::_ifb(unsigned short a, unsigned short b) {
-	if((get_value(a) & get_value(b)) != 0)
-		exec(mem.at((++s_reg[PC]).get()));
+void dcpu::_ifb(word a, word b) {
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// check condition
+	if(a_val & b_val)
+		exec(s_reg[PC].get());
+	else
+
+		// add cycle on fail
+		++cycle;
+	cycle += 2;
 }
 
 /*
  * Execute next instruction if (A == B)
  */
-void dcpu::_ife(unsigned short a, unsigned short b) {
-	if(get_value(a) == get_value(b))
-		exec(mem.at((++s_reg[PC]).get()));
+void dcpu::_ife(word a, word b) {
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// check condition
+	if(a_val == b_val)
+		exec(s_reg[PC].get());
+	else
+
+		// add cycle on fail
+		++cycle;
+	cycle += 2;
 }
 
 /*
  * Execute next instruction if (A > B)
  */
-void dcpu::_ifg(unsigned short a, unsigned short b) {
-	if(get_value(a) > get_value(b))
-		exec(mem.at((++s_reg[PC]).get()));
+void dcpu::_ifg(word a, word b) {
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// check condition
+	if(a_val > b_val)
+		exec(s_reg[PC].get());
+	else
+
+		// add cycle on fail
+		++cycle;
+	cycle += 2;
 }
 
 /*
  * Execute next instruction if (A != B)
  */
-void dcpu::_ifn(unsigned short a, unsigned short b) {
-	if(get_value(a) != get_value(b))
-		exec(mem.at((++s_reg[PC]).get()));
+void dcpu::_ifn(word a, word b) {
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// check condition
+	if(a_val != b_val)
+		exec(s_reg[PC].get());
+	else
+
+		// add cycle on fail
+		++cycle;
+	cycle += 2;
 }
 
 /*
  * Push the address of the next word onto the stack
  */
-void dcpu::_jsr(unsigned short a) {
-	set_value(PUSH, (++s_reg[PC]).get());
+void dcpu::_jsr(word a) {
+	mem.set((--s_reg[SP]).get(), s_reg[PC].get());
 	s_reg[PC].set(a);
+	cycle += 2;
 }
 
 /*
  * Modulus of A by B
  */
-void dcpu::_mod(unsigned short a, unsigned short b) {
-	unsigned short b_val = get_value(b);
+void dcpu::_mod(word a, word b) {
 
-	// check if b_val == 0
-	if(!b_val) {
-		set_value(a, 0);
-		return;
-	}
+	// retrieve address
+	word *a_addr = get_address(a);
 
-	// set value
-	set_value(a, get_value(a) % get_value(b));
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// check if b value is zero
+	if(!b_val)
+		set_value(a_addr, LOW);
+	else
+
+		// perform division
+		set_value(a_addr, a_val % b_val);
+	cycle += 3;
 }
 
 /*
  * Multiplication of B from A (sets overflow)
  */
-void dcpu::_mul(unsigned short a, unsigned short b) {
-	unsigned int value = get_value(a) * get_value(b);
+void dcpu::_mul(word a, word b) {
 
-	// check for overflow
-	s_reg[OVERFLOW].set((value >> 16) & H_OVFLOW);
+	// retrieve address
+	word *a_addr = get_address(a);
 
-	// set value
-	set_value(a, value);
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// set overflow
+	s_reg[OVERFLOW].set(((a_val * b_val) >> 16) & HIGH);
+
+	// perform multiplication
+	set_value(a_addr, a_val * b_val);
+	cycle += 2;
 }
 
 /*
  * Set A to B
  */
-void dcpu::_set(unsigned short a, unsigned short b) {
-	set_value(a, get_value(b));
+void dcpu::_set(word a, word b) {
+
+	// retrieve info
+	word *addr = get_address(a);
+	word value = get_value(b);
+
+	// perform set
+	set_value(addr, value);
+	++cycle;
 }
 
 /*
  * Shift-left A by B (sets overflow)
  */
-void dcpu::_shl(unsigned short a, unsigned short b) {
-	unsigned short a_val = get_value(a), b_val = get_value(b);
+void dcpu::_shl(word a, word b) {
 
-	// check for overflow
-	s_reg[OVERFLOW].set(((a_val << b_val) >> 16) & H_OVFLOW);
+	// retrieve address
+	word *a_addr = get_address(a);
 
-	// set value
-	set_value(a, a_val << b_val);
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// set overflow
+	s_reg[OVERFLOW].set(((a_val << b_val) >> 16) & HIGH);
+
+	// perform shift
+	set_value(a_addr, a_val << b_val);
+	cycle += 2;
 }
 
 /*
  * Shift-right A by B (sets overflow)
  */
-void dcpu::_shr(unsigned short a, unsigned short b) {
-	unsigned short a_val = get_value(a), b_val = get_value(b);
+void dcpu::_shr(word a, word b) {
 
-	// check for overflow
-	s_reg[OVERFLOW].set(((a_val << 16) >> b_val) & H_OVFLOW);
+	// retrieve address
+	word *a_addr = get_address(a);
 
-	// set value
-	set_value(a, a_val >> b_val);
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// set overflow
+	s_reg[OVERFLOW].set(((a_val << 16) >> b_val) & HIGH);
+
+	// perform shift
+	set_value(a_addr, a_val >> b_val);
+	cycle += 2;
 }
 
 /*
  * Subtraction of B from A (sets overflow)
  */
-void dcpu::_sub(unsigned short a, unsigned short b) {
-	unsigned short a_val = get_value(a), b_val = get_value(b);
+void dcpu::_sub(word a, word b) {
 
-	// check for overflow
-	s_reg[OVERFLOW].set(NOT_OVFLOW);
+	// retrieve address
+	word *a_addr = get_address(a);
+
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// set overflow
 	if(b_val > a_val)
-		s_reg[OVERFLOW].set(H_OVFLOW);
+		s_reg[OVERFLOW].set(HIGH);
+	else
+		s_reg[OVERFLOW].set(LOW);
 
-	// set value
-	set_value(a, a_val - b_val);
+	// perform subtraction
+	set_value(a_addr, a_val - b_val);
+	cycle += 2;
 }
 
 /*
  * Exclusive-OR of A and B
  */
-void dcpu::_xor(unsigned short a, unsigned short b) {
-	set_value(a, get_value(a) ^ get_value(b));
+void dcpu::_xor(word a, word b) {
+
+	// retrieve address
+	word *a_addr = get_address(a);
+
+	// properly set PC
+	if((a >= L_OFF && a <= H_OFF)
+			|| a == ADR_OFF
+			|| a == LIT_OFF)
+		--s_reg[PC];
+
+	// retrieve values
+	word a_val = get_value(a);
+	word b_val = get_value(b);
+
+	// perform binary operation
+	set_value(a_addr, a_val ^ b_val);
+	++cycle;
+}
+
+/*
+ * Returns a Cpu cycle count
+ */
+size_t dcpu::cycles(void) {
+	return cycle;
 }
 
 /*
@@ -277,15 +488,32 @@ void dcpu::_xor(unsigned short a, unsigned short b) {
 std::string dcpu::dump(void) {
 	std::stringstream ss;
 
+	// print attributes
+	ss << "STATE: ";
+	switch(state) {
+		case INIT:
+			ss << "INIT";
+			break;
+		case RUN:
+			ss << "RUNNING";
+			break;
+		case HALT:
+			ss << "HALTED";
+			break;
+		default:
+			ss << "UNKNOWN";
+			break;
+	}
+	ss << ", CYCLE: " << cycle << std::endl;
+
 	// print all system registers
 	ss << "S_REG { ";
-	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+	for(word i = 0; i < S_REG_COUNT; ++i)
 		ss << s_reg[i].dump() << ", ";
-
 
 	// print all main registers
 	ss << "}" << std::endl << "M_REG { ";
-	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+	for(word i = 0; i < M_REG_COUNT; ++i)
 		ss << m_reg[i].dump() << ", ";
 	ss << "}";
 	return ss.str();
@@ -297,12 +525,12 @@ std::string dcpu::dump(void) {
 bool dcpu::dump_to_file(const std::string &path) {
 
 	// write system registers to file
-	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+	for(word i = 0; i < S_REG_COUNT; ++i)
 		if(!s_reg[i].dump_to_file(path))
 			return false;
 
 	// write main registers to file
-	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+	for(word i = 0; i < M_REG_COUNT; ++i)
 		if(!m_reg[i].dump_to_file(path))
 			return false;
 	return true;
@@ -311,12 +539,15 @@ bool dcpu::dump_to_file(const std::string &path) {
 /*
  * Execute a single command
  */
-bool dcpu::exec(unsigned short op) {
-	unsigned char code = 0;
-	unsigned short a = 0, b = 0;
+bool dcpu::exec(word op) {
+	word code = 0, a = 0, b = 0;
+
+	// check state
+	if(!is_running())
+		return false;
 
 	// parse opt-code, A & B from opt
-	for(size_t i = 0; i < 8 * sizeof(short); ++i)
+	for(size_t i = 0; i < 8 * sizeof(word); ++i)
 
 		// parse code
 		if(i < B_OP_LEN) {
@@ -384,81 +615,178 @@ bool dcpu::exec(unsigned short op) {
 /*
  * Execute a series of commands
  */
-bool dcpu::exec(std::vector<unsigned short> &op) {
+bool dcpu::exec(std::vector<word> &op) {
 	return exec(0, op.size(), op);
 }
 
 /*
  * Execute a series of commands starting at offset to range
  */
-bool dcpu::exec(unsigned short offset, unsigned short range, std::vector<unsigned short> &op) {
+bool dcpu::exec(word offset, word range, std::vector<word> &op) {
 
 	// execute all commands
-	for(unsigned short i = 0; i < range; ++i)
+	for(word i = 0; i < range; ++i)
 		if(!exec(op.at(offset + i)))
 			return false;
 	return true;
 }
 
 /*
- * Return a value held at a given location
+ * Return an address of a value at a given location
  */
-unsigned short dcpu::get_value(unsigned short location) {
+word *dcpu::get_address(word value) {
 
 	// register value
-	if(location >= L_REG && location <= H_REG)
-		return m_reg[location].get();
+	if(value >= L_REG && value <= H_REG) {
+		++cycle;
+		return &m_reg[value].get();
+	}
 
 	// value at address in register
-	else if(location >= L_VAL && location <= H_VAL)
-		return mem.at(m_reg[location % M_REG_COUNT].get());
+	else if(value >= L_VAL && value <= H_VAL) {
+		++cycle;
+		return &mem.at(m_reg[value % M_REG_COUNT].get());
+	}
 
 	// value at address ((PC + 1) + register value)
-	else if(location >= L_OFF && location <= H_OFF)
-		return mem.at(mem.at(s_reg[PC]++.get()) + m_reg[location % M_REG_COUNT].get());
+	else if(value >= L_OFF && value <= H_OFF) {
+		cycle += 2;
+		return &mem.at(mem.at(s_reg[PC]++.get()) + m_reg[value % M_REG_COUNT].get());
+	}
 
 	// value at address in SP and increment SP
-	else if(location == POP)
-		return mem.at(s_reg[SP]++.get());
+	else if(value == POP) {
+		++cycle;
+		return &mem.at(s_reg[SP]++.get());
+	}
 
 	// value at address in SP
-	else if(location == PEEK)
-		return mem.at(s_reg[SP].get());
+	else if(value == PEEK) {
+		++cycle;
+		return &mem.at(s_reg[SP].get());
+	}
 
 	// value at address in SP
-	else if(location == PUSH)
-		return mem.at((--s_reg[SP]).get());
+	else if(value == PUSH) {
+		++cycle;
+		return &mem.at((--s_reg[SP]).get());
+	}
 
 	// value in SP
-	else if(location == SP_VAL)
+	else if(value == SP_VAL)
+		return &s_reg[SP].get();
+
+	// value in PC
+	else if(value == PC_VAL)
+		return &s_reg[PC]++.get();
+
+	// value in overflow
+	else if(value == OVER_F)
+		return &s_reg[OVERFLOW].get();
+
+	// value of address at PC + 1
+	else if(value == ADR_OFF) {
+		cycle += 2;
+		return &mem.at(mem.at(s_reg[PC]++.get()));
+	}
+
+	// value at PC + 1
+	else if(value == LIT_OFF) {
+		++cycle;
+		return &mem.at(s_reg[PC]++.get());
+	}
+	return NULL;
+}
+
+/*
+ * Return a value held at a given location
+ */
+word dcpu::get_value(word value) {
+
+	// register value
+	if(value >= L_REG && value <= H_REG) {
+		++cycle;
+		return m_reg[value].get();
+	}
+
+	// value at address in register
+	else if(value >= L_VAL && value <= H_VAL) {
+		++cycle;
+		return mem.at(m_reg[value % M_REG_COUNT].get());
+	}
+
+	// value at address ((PC + 1) + register value)
+	else if(value >= L_OFF && value <= H_OFF) {
+		cycle += 2;
+		return mem.at(mem.at(s_reg[PC]++.get()) + m_reg[value % M_REG_COUNT].get());
+	}
+
+	// value at address in SP and increment SP
+	else if(value == POP) {
+		++cycle;
+		return mem.at(s_reg[SP]++.get());
+	}
+
+	// value at address in SP
+	else if(value == PEEK) {
+		++cycle;
+		return mem.at(s_reg[SP].get());
+	}
+
+	// value at address in SP
+	else if(value == PUSH) {
+		++cycle;
+		return mem.at((--s_reg[SP]).get());
+	}
+
+	// value in SP
+	else if(value == SP_VAL)
 		return s_reg[SP].get();
 
 	// value in PC
-	else if(location == PC_VAL)
+	else if(value == PC_VAL)
 		return s_reg[PC]++.get();
 
 	// value in overflow
-	else if(location == OVER_F)
+	else if(value == OVER_F)
 		return s_reg[OVERFLOW].get();
 
 	// value of address at PC + 1
-	else if(location == ADR_OFF)
+	else if(value == ADR_OFF) {
+		cycle += 2;
 		return mem.at(mem.at(s_reg[PC]++.get()));
+	}
 
-	// value of PC + 1
-	else if(location == LIT_OFF)
+	// value at PC + 1
+	else if(value == LIT_OFF) {
+		++cycle;
 		return mem.at(s_reg[PC]++.get());
+	}
 
 	// Literal value from 0 - 31
-	else if(location >= L_LIT && location <= H_LIT)
-		return location % LIT_COUNT;
+	else if(value >= L_LIT && value <= H_LIT)
+		return value % LIT_COUNT;
 	return 0;
+}
+
+/*
+ * Halt a Cpu
+ */
+bool dcpu::halt(void) {
+	return state_change(HALT);
+}
+
+/*
+ * Returns a Cpu running status
+ */
+bool dcpu::is_running(void) {
+	return state == RUN;
 }
 
 /*
  * Return a main register
  */
-reg16 &dcpu::m_register(unsigned char reg) {
+reg16 &dcpu::m_register(word reg) {
 	return m_reg[reg];
 }
 
@@ -475,63 +803,58 @@ mem128 &dcpu::memory(void) {
 void dcpu::reset(void) {
 
 	// clear main registers
-	for(unsigned short i = 0; i < M_REG_COUNT; ++i)
+	for(word i = 0; i < M_REG_COUNT; ++i)
 		m_reg[i].clear();
 
 	// clear system registers
-	for(unsigned short i = 0; i < S_REG_COUNT; ++i)
+	for(word i = 0; i < S_REG_COUNT; ++i)
 		s_reg[i].clear();
+
+	// clean attributes
+	state = INIT;
+	cycle = 0;
+}
+
+/*
+ * Run a Cpu
+ */
+bool dcpu::run(void) {
+
+	// attempt to change state
+	if(!state_change(RUN))
+		return false;
+
+	// run until no more commands are found
+	// or a malformed command is found
+	while(exec(mem.at(s_reg[PC].get())));
+	halt();
+	return true;
 }
 
 /*
  * Return a system register
  */
-reg16 &dcpu::s_register(unsigned char reg) {
+reg16 &dcpu::s_register(word reg) {
 	return s_reg[reg];
 }
 
 /*
  * Set a value held at a given location
  */
-void dcpu::set_value(unsigned short location, unsigned short value) {
+void dcpu::set_value(word *location, word value) {
+	*location = value;
+}
 
-	// register value
-	if(location >= L_REG && location <= H_REG)
-		m_reg[location].set(value);
+/*
+ * Perform a state change
+ */
+bool dcpu::state_change(word state) {
 
-	// value at address in register
-	else if(location >= L_VAL && location <= H_VAL)
-		mem.set(m_reg[location % M_REG_COUNT].get(), value);
+	// check if already in state
+	if(this->state == state)
+		return false;
 
-	// value at address ((PC + 1) + register value)
-	else if(location >= L_OFF && location <= H_OFF)
-		mem.set(mem.at(s_reg[PC]++.get()) + m_reg[location % M_REG_COUNT].get(), value);
-
-	// value at address in SP and increment SP
-	else if(location == POP)
-		mem.set(s_reg[SP]++.get(), value);
-
-	// value at address in SP
-	else if(location == PEEK)
-		mem.set(s_reg[SP].get(), value);
-
-	// value at address in SP
-	else if(location == PUSH)
-		mem.set((--s_reg[SP]).get(), value);
-
-	// value in SP
-	else if(location == SP_VAL)
-		s_reg[SP].set(value);
-
-	// value in PC
-	else if(location == PC_VAL)
-		s_reg[PC]++.set(value);
-
-	// value in overflow
-	else if(location == OVER_F)
-		s_reg[OVERFLOW].set(value);
-
-	// value of address at PC + 1
-	else if(location == ADR_OFF)
-		mem.set(mem.at(s_reg[PC]++.get()), value);
+	// assign new state
+	this->state = state;
+	return true;
 }
