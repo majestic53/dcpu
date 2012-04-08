@@ -97,87 +97,87 @@ private:
 	/*
 	 * Add B to A (sets overflow)
 	 */
-	void _add(word a, word b);
+	void _add(word a, word b, bool exe);
 
 	/*
 	 * Binary AND of A and B
 	 */
-	void _and(word a, word b);
+	void _and(word a, word b, bool exe);
 
 	/*
 	 * Binary OR of A and B
 	 */
-	void _bor(word a, word b);
+	void _bor(word a, word b, bool exe);
 
 	/*
 	 * Division of A by B (sets overflow)
 	 */
-	void _div(word a, word b);
+	void _div(word a, word b, bool exe);
 
 	/*
 	 * Execute next instruction if ((A & B) != 0)
 	 */
-	void _ifb(word a, word b);
+	void _ifb(word a, word b, bool exe);
 
 	/*
 	 * Execute next instruction if (A == B)
 	 */
-	void _ife(word a, word b);
+	void _ife(word a, word b, bool exe);
 
 	/*
 	 * Execute next instruction if (A > B)
 	 */
-	void _ifg(word a, word b);
+	void _ifg(word a, word b, bool exe);
 
 	/*
 	 * Execute next instruction if (A != B)
 	 */
-	void _ifn(word a, word b);
+	void _ifn(word a, word b, bool exe);
 
 	/*
 	 * Push the address of the next word onto the stack
 	 */
-	void _jsr(word a);
+	void _jsr(word a, bool exe);
 
 	/*
 	 * Modulus of A by B
 	 */
-	void _mod(word a, word b);
+	void _mod(word a, word b, bool exe);
 
 	/*
 	 * Multiplication of B from A (sets overflow)
 	 */
-	void _mul(word a, word b);
+	void _mul(word a, word b, bool exe);
 
 	/*
 	 * Set A to B
 	 */
-	void _set(word a, word b);
+	void _set(word a, word b, bool exe);
 
 	/*
 	 * Shift-left A by B (sets overflow)
 	 */
-	void _shl(word a, word b);
+	void _shl(word a, word b, bool exe);
 
 	/*
 	 * Shift-right A by B (sets overflow)
 	 */
-	void _shr(word a, word b);
+	void _shr(word a, word b, bool exe);
 
 	/*
 	 * Subtraction of B from A (sets overflow)
 	 */
-	void _sub(word a, word b);
+	void _sub(word a, word b, bool exe);
 
 	/*
 	 * Exclusive-OR of A and B
 	 */
-	void _xor(word a, word b);
+	void _xor(word a, word b, bool exe);
 
 	/*
 	 * Execute a single command
 	 */
-	bool exec(word op);
+	bool exec(word op, bool exe);
 
 	/*
 	 * Execute a series of commands
@@ -192,17 +192,17 @@ private:
 	/*
 	 * Return an address of a value at a given location
 	 */
-	word *get_address(word value);
+	word *get_address(word value, bool exe);
 
 	/*
 	 * Return a value held at a given value
 	 */
-	word get_value(word value);
+	word get_value(word value, bool exe);
 
 	/*
 	 * Set a value held at a given location
 	 */
-	void set_value(word *location, word value);
+	void set_value(word location, word *ptr, word value);
 
 	/*
 	 * Perform a state change

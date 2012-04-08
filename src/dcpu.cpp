@@ -17,8 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-
 #include <sstream>
 #include "dcpu.hpp"
 
@@ -110,10 +108,10 @@ bool dcpu::operator!=(const dcpu &other) {
 /*
  * Add B to A (sets overflow)
  */
-void dcpu::_add(word a, word b) {
+void dcpu::_add(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -122,28 +120,32 @@ void dcpu::_add(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 	dword res = a_val + b_val;
 
-	// set overflow
-	if(res >= HIGH)
-		s_reg[OVERFLOW].set(FLAG);
-	else
-		s_reg[OVERFLOW].set(LOW);
+	// execute command
+	if(exe) {
 
-	// perform addition
-	set_value(a_addr, res);
-	cycle += 2;
+		// set overflow
+		if(res >= HIGH)
+			s_reg[OVERFLOW].set(FLAG);
+		else
+			s_reg[OVERFLOW].set(LOW);
+
+		// perform addition
+		set_value(a, a_addr, res);
+		cycle += 2;
+	}
 }
 
 /*
  * Binary AND of A and B
  */
-void dcpu::_and(word a, word b) {
+void dcpu::_and(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -152,21 +154,25 @@ void dcpu::_and(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// perform binary operation
-	set_value(a_addr, a_val & b_val);
-	++cycle;
+	// execute command
+	if(exe) {
+
+		// perform binary operation
+		set_value(a, a_addr, a_val & b_val);
+		++cycle;
+	}
 }
 
 /*
  * Binary OR of A and B
  */
-void dcpu::_bor(word a, word b) {
+void dcpu::_bor(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -175,21 +181,25 @@ void dcpu::_bor(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// perform binary operation
-	set_value(a_addr, a_val | b_val);
-	++cycle;
+	// execute command
+	if(exe) {
+
+		// perform binary operation
+		set_value(a, a_addr, a_val | b_val);
+		++cycle;
+	}
 }
 
 /*
  * Division of A by B (sets overflow)
  */
-void dcpu::_div(word a, word b) {
+void dcpu::_div(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -198,118 +208,136 @@ void dcpu::_div(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// check if b value is zero
-	if(!b_val) {
+	// execute command
+	if(exe) {
 
-		// set overflow
-		s_reg[OVERFLOW].set(LOW);
-		set_value(a_addr, LOW);
-	} else {
+		// check if b value is zero
+		if(!b_val) {
 
-		// set overflow
-		s_reg[OVERFLOW].set(((a_val << 16) / b_val) & HIGH);
+			// set overflow
+			s_reg[OVERFLOW].set(LOW);
+			set_value(a, a_addr, LOW);
+		} else {
 
-		// perform addition
-		set_value(a_addr, a_val / b_val);
+			// set overflow
+			s_reg[OVERFLOW].set(((a_val << 16) / b_val) & HIGH);
+
+			// perform addition
+			set_value(a, a_addr, a_val / b_val);
+		}
+		cycle += 3;
 	}
-	cycle += 3;
 }
 
 /*
  * Execute next instruction if ((A & B) != 0)
  */
-void dcpu::_ifb(word a, word b) {
+void dcpu::_ifb(word a, word b, bool exe) {
+	bool execute = false;
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
 	// check condition
 	if(a_val & b_val)
-		exec(s_reg[PC].get());
+		execute = true;
 	else
 
 		// add cycle on fail
 		++cycle;
+	exec(mem.at(s_reg[PC].get()), exe && execute);
 	cycle += 2;
 }
 
 /*
  * Execute next instruction if (A == B)
  */
-void dcpu::_ife(word a, word b) {
+void dcpu::_ife(word a, word b, bool exe) {
+	bool execute = false;
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
 	// check condition
 	if(a_val == b_val)
-		exec(s_reg[PC].get());
+		execute = true;
 	else
 
 		// add cycle on fail
 		++cycle;
+	exec(mem.at(s_reg[PC].get()), exe && execute);
 	cycle += 2;
 }
 
 /*
  * Execute next instruction if (A > B)
  */
-void dcpu::_ifg(word a, word b) {
+void dcpu::_ifg(word a, word b, bool exe) {
+	bool execute = false;
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
 	// check condition
 	if(a_val > b_val)
-		exec(s_reg[PC].get());
+		execute = true;
 	else
 
 		// add cycle on fail
 		++cycle;
+	exec(mem.at(s_reg[PC].get()), exe && execute);
 	cycle += 2;
 }
 
 /*
  * Execute next instruction if (A != B)
  */
-void dcpu::_ifn(word a, word b) {
+void dcpu::_ifn(word a, word b, bool exe) {
+	bool execute = false;
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
 	// check condition
 	if(a_val != b_val)
-		exec(s_reg[PC].get());
+		execute = true;
 	else
 
 		// add cycle on fail
 		++cycle;
+	exec(mem.at(s_reg[PC].get()), exe && execute);
 	cycle += 2;
 }
 
 /*
  * Push the address of the next word onto the stack
  */
-void dcpu::_jsr(word a) {
-	mem.set((--s_reg[SP]).get(), s_reg[PC].get());
-	s_reg[PC].set(a);
-	cycle += 2;
+void dcpu::_jsr(word a, bool exe) {
+
+	// execute command
+	if(exe) {
+
+		// move to sub-routine
+		mem.set((--s_reg[SP]).get(), s_reg[PC].get());
+		s_reg[PC].set(get_value(a, exe));
+		cycle += 2;
+	}
 }
 
 /*
  * Modulus of A by B
  */
-void dcpu::_mod(word a, word b) {
+void dcpu::_mod(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -318,26 +346,30 @@ void dcpu::_mod(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// check if b value is zero
-	if(!b_val)
-		set_value(a_addr, LOW);
-	else
+	// execute command
+	if(exe) {
 
-		// perform division
-		set_value(a_addr, a_val % b_val);
-	cycle += 3;
+		// check if b value is zero
+		if(!b_val)
+			set_value(a, a_addr, LOW);
+		else
+
+			// perform division
+			set_value(a, a_addr, a_val % b_val);
+		cycle += 3;
+	}
 }
 
 /*
  * Multiplication of B from A (sets overflow)
  */
-void dcpu::_mul(word a, word b) {
+void dcpu::_mul(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -346,38 +378,46 @@ void dcpu::_mul(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// set overflow
-	s_reg[OVERFLOW].set(((a_val * b_val) >> 16) & HIGH);
+	// execute command
+	if(exe) {
 
-	// perform multiplication
-	set_value(a_addr, a_val * b_val);
-	cycle += 2;
+		// set overflow
+		s_reg[OVERFLOW].set(((a_val * b_val) >> 16) & HIGH);
+
+		// perform multiplication
+		set_value(a, a_addr, a_val * b_val);
+		cycle += 2;
+	}
 }
 
 /*
  * Set A to B
  */
-void dcpu::_set(word a, word b) {
+void dcpu::_set(word a, word b, bool exe) {
 
 	// retrieve info
-	word *addr = get_address(a);
-	word value = get_value(b);
+	word *addr = get_address(a, exe);
+	word value = get_value(b, exe);
 
-	// perform set
-	set_value(addr, value);
-	++cycle;
+	// execute command
+	if(exe) {
+
+		// perform set
+		set_value(a, addr, value);
+		++cycle;
+	}
 }
 
 /*
  * Shift-left A by B (sets overflow)
  */
-void dcpu::_shl(word a, word b) {
+void dcpu::_shl(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -386,24 +426,28 @@ void dcpu::_shl(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// set overflow
-	s_reg[OVERFLOW].set(((a_val << b_val) >> 16) & HIGH);
+	// execute command
+	if(exe) {
 
-	// perform shift
-	set_value(a_addr, a_val << b_val);
-	cycle += 2;
+		// set overflow
+		s_reg[OVERFLOW].set(((a_val << b_val) >> 16) & HIGH);
+
+		// perform shift
+		set_value(a, a_addr, a_val << b_val);
+		cycle += 2;
+	}
 }
 
 /*
  * Shift-right A by B (sets overflow)
  */
-void dcpu::_shr(word a, word b) {
+void dcpu::_shr(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -412,24 +456,28 @@ void dcpu::_shr(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// set overflow
-	s_reg[OVERFLOW].set(((a_val << 16) >> b_val) & HIGH);
+	// execute command
+	if(exe) {
 
-	// perform shift
-	set_value(a_addr, a_val >> b_val);
-	cycle += 2;
+		// set overflow
+		s_reg[OVERFLOW].set(((a_val << 16) >> b_val) & HIGH);
+
+		// perform shift
+		set_value(a, a_addr, a_val >> b_val);
+		cycle += 2;
+	}
 }
 
 /*
  * Subtraction of B from A (sets overflow)
  */
-void dcpu::_sub(word a, word b) {
+void dcpu::_sub(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -438,27 +486,31 @@ void dcpu::_sub(word a, word b) {
 		--s_reg[PC];
 
 	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	word a_val = get_value(a, exe);
+	word b_val = get_value(b, exe);
 
-	// set overflow
-	if(b_val > a_val)
-		s_reg[OVERFLOW].set(HIGH);
-	else
-		s_reg[OVERFLOW].set(LOW);
+	// execute command
+	if(exe) {
 
-	// perform subtraction
-	set_value(a_addr, a_val - b_val);
-	cycle += 2;
+		// set overflow
+		if(b_val > a_val)
+			s_reg[OVERFLOW].set(HIGH);
+		else
+			s_reg[OVERFLOW].set(LOW);
+
+		// perform subtraction
+		set_value(a, a_addr, a_val - b_val);
+		cycle += 2;
+	}
 }
 
 /*
  * Exclusive-OR of A and B
  */
-void dcpu::_xor(word a, word b) {
+void dcpu::_xor(word a, word b, bool exe) {
 
 	// retrieve address
-	word *a_addr = get_address(a);
+	word *a_addr = get_address(a, exe);
 
 	// properly set PC
 	if((a >= L_OFF && a <= H_OFF)
@@ -466,13 +518,17 @@ void dcpu::_xor(word a, word b) {
 			|| a == LIT_OFF)
 		--s_reg[PC];
 
-	// retrieve values
-	word a_val = get_value(a);
-	word b_val = get_value(b);
+	// execute command
+	if(exe) {
 
-	// perform binary operation
-	set_value(a_addr, a_val ^ b_val);
-	++cycle;
+		// retrieve values
+		word a_val = get_value(a, exe);
+		word b_val = get_value(b, exe);
+
+		// perform binary operation
+		set_value(a, a_addr, a_val ^ b_val);
+		++cycle;
+	}
 }
 
 /*
@@ -539,7 +595,7 @@ bool dcpu::dump_to_file(const std::string &path) {
 /*
  * Execute a single command
  */
-bool dcpu::exec(word op) {
+bool dcpu::exec(word op, bool exe) {
 	word code = 0, a = 0, b = 0;
 
 	// check state
@@ -572,40 +628,56 @@ bool dcpu::exec(word op) {
 	switch(code) {
 		case NB:
 			switch(a) {
-				case JSR: _jsr(b);
+				case JSR: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "JSR" << ": " << std::hex << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+					_jsr(b, exe);
 					break;
 				default: return false;
 			}
 			break;
-		case SET: _set(a, b);
+		case SET: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "SET" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_set(a, b, exe);
 			break;
-		case ADD: _add(a, b);
+		case ADD: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "ADD" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_add(a, b, exe);
 			break;
-		case SUB: _sub(a, b);
+		case SUB: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "SUB" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_sub(a, b, exe);
 			break;
-		case MUL: _mul(a, b);
+		case MUL: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "MUL" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_mul(a, b, exe);
 			break;
-		case DIV: _div(a, b);
+		case DIV: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "DIV" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_div(a, b, exe);
 			break;
-		case MOD: _mod(a, b);
+		case MOD: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "MOD" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_mod(a, b, exe);
 			break;
-		case SHL: _shl(a, b);
+		case SHL: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "SHL" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_shl(a, b, exe);
 			break;
-		case SHR: _shr(a, b);
+		case SHR: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "SHR" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_shr(a, b, exe);
 			break;
-		case AND: _and(a, b);
+		case AND: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "AND" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_and(a, b, exe);
 			break;
-		case BOR: _bor(a, b);
+		case BOR: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "BOR" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_bor(a, b, exe);
 			break;
-		case XOR: _xor(a, b);
+		case XOR: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "XOR" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_xor(a, b, exe);
 			break;
-		case IFE: _ife(a, b);
+		case IFE: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "IFE" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_ife(a, b, exe);
 			break;
-		case IFN: _ifn(a, b);
+		case IFN: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "IFN" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_ifn(a, b, exe);
 			break;
-		case IFG: _ifg(a, b);
+		case IFG: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "IFG" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_ifg(a, b, exe);
 			break;
-		case IFB: _ifb(a, b);
+		case IFB: //std::cout << "[" << std::dec << s_reg[PC].get() << "] " << "IFB" << ": " << std::hex << a << ", " << b << " (" << (exe ? "EXECUTE" : "NOT EXECUTE") << ")" << std::endl;
+			_ifb(a, b, exe);
 			break;
 		default: return false;
 	}
@@ -626,7 +698,7 @@ bool dcpu::exec(word offset, word range, std::vector<word> &op) {
 
 	// execute all commands
 	for(word i = 0; i < range; ++i)
-		if(!exec(op.at(offset + i)))
+		if(!exec(op.at(offset + i), true))
 			return false;
 	return true;
 }
@@ -634,41 +706,47 @@ bool dcpu::exec(word offset, word range, std::vector<word> &op) {
 /*
  * Return an address of a value at a given location
  */
-word *dcpu::get_address(word value) {
+word *dcpu::get_address(word value, bool exe) {
 
 	// register value
 	if(value >= L_REG && value <= H_REG) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return &m_reg[value].get();
 	}
 
 	// value at address in register
 	else if(value >= L_VAL && value <= H_VAL) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return &mem.at(m_reg[value % M_REG_COUNT].get());
 	}
 
 	// value at address ((PC + 1) + register value)
 	else if(value >= L_OFF && value <= H_OFF) {
-		cycle += 2;
+		if(exe)
+			cycle += 2;
 		return &mem.at(mem.at(s_reg[PC]++.get()) + m_reg[value % M_REG_COUNT].get());
 	}
 
 	// value at address in SP and increment SP
 	else if(value == POP) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return &mem.at(s_reg[SP]++.get());
 	}
 
 	// value at address in SP
 	else if(value == PEEK) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return &mem.at(s_reg[SP].get());
 	}
 
 	// value at address in SP
 	else if(value == PUSH) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return &mem.at((--s_reg[SP]).get());
 	}
 
@@ -678,7 +756,7 @@ word *dcpu::get_address(word value) {
 
 	// value in PC
 	else if(value == PC_VAL)
-		return &s_reg[PC]++.get();
+		return &s_reg[PC].get();
 
 	// value in overflow
 	else if(value == OVER_F)
@@ -686,13 +764,15 @@ word *dcpu::get_address(word value) {
 
 	// value of address at PC + 1
 	else if(value == ADR_OFF) {
-		cycle += 2;
+		if(exe)
+			cycle += 2;
 		return &mem.at(mem.at(s_reg[PC]++.get()));
 	}
 
 	// value at PC + 1
 	else if(value == LIT_OFF) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return &mem.at(s_reg[PC]++.get());
 	}
 	return NULL;
@@ -701,41 +781,47 @@ word *dcpu::get_address(word value) {
 /*
  * Return a value held at a given location
  */
-word dcpu::get_value(word value) {
+word dcpu::get_value(word value, bool exe) {
 
 	// register value
 	if(value >= L_REG && value <= H_REG) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return m_reg[value].get();
 	}
 
 	// value at address in register
 	else if(value >= L_VAL && value <= H_VAL) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return mem.at(m_reg[value % M_REG_COUNT].get());
 	}
 
 	// value at address ((PC + 1) + register value)
 	else if(value >= L_OFF && value <= H_OFF) {
-		cycle += 2;
+		if(exe)
+			cycle += 2;
 		return mem.at(mem.at(s_reg[PC]++.get()) + m_reg[value % M_REG_COUNT].get());
 	}
 
 	// value at address in SP and increment SP
 	else if(value == POP) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return mem.at(s_reg[SP]++.get());
 	}
 
 	// value at address in SP
 	else if(value == PEEK) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return mem.at(s_reg[SP].get());
 	}
 
 	// value at address in SP
 	else if(value == PUSH) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return mem.at((--s_reg[SP]).get());
 	}
 
@@ -753,13 +839,15 @@ word dcpu::get_value(word value) {
 
 	// value of address at PC + 1
 	else if(value == ADR_OFF) {
-		cycle += 2;
+		if(exe)
+			cycle += 2;
 		return mem.at(mem.at(s_reg[PC]++.get()));
 	}
 
 	// value at PC + 1
 	else if(value == LIT_OFF) {
-		++cycle;
+		if(exe)
+			++cycle;
 		return mem.at(s_reg[PC]++.get());
 	}
 
@@ -826,7 +914,7 @@ bool dcpu::run(void) {
 
 	// run until no more commands are found
 	// or a malformed command is found
-	while(exec(mem.at(s_reg[PC].get())));
+	while(exec(mem.at(s_reg[PC].get()), true));
 	halt();
 	return true;
 }
@@ -841,8 +929,16 @@ reg16 &dcpu::s_register(word reg) {
 /*
  * Set a value held at a given location
  */
-void dcpu::set_value(word *location, word value) {
-	*location = value;
+void dcpu::set_value(word location, word *ptr, word value) {
+
+	// add a cycle if writing to a memory location
+	// (not sure about this, spec doesn't specify cycles required for writes)
+	if((location >= L_VAL && location <= H_OFF)
+			|| location == ADR_OFF)
+		++cycle;
+
+	// set address to value
+	*ptr = value;
 }
 
 /*
