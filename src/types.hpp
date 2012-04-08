@@ -1,5 +1,5 @@
 /*
- * dcpu.hpp
+ * types.hpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *

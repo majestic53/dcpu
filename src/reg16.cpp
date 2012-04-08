@@ -1,5 +1,5 @@
 /*
- * _register.cpp
+ * reg16.cpp
  * Copyright (C) 2012 David Jolly
  * ----------------------
  *
