@@ -17,6 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -243,7 +244,9 @@ bool reg16::dump_to_file(const std::string &path) {
 		return false;
 
 	// write memory to file
-	file.write(reinterpret_cast<const char *>(&value), sizeof(word));
+	const char *bytes = reinterpret_cast<const char *>(&value);
+	file.write(&bytes[1], sizeof(halfword));
+	file.write(&bytes[0], sizeof(halfword));
 	file.close();
 	return true;
 }

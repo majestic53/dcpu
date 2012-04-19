@@ -23,6 +23,7 @@
 /*
  * Word size
  */
+typedef unsigned char halfword;
 typedef unsigned short word;
 typedef unsigned int dword;
 

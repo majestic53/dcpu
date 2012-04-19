@@ -139,8 +139,11 @@ bool mem128::dump_to_file(word offset, word range, const std::string &path) {
 		return false;
 
 	// write memory to file
-	for(word i = 0; i < range; ++i)
-		file.write(reinterpret_cast<const char *>(&words[offset + i]), sizeof(word));
+	for(word i = 0; i < range; ++i) {
+		const char *bytes = reinterpret_cast<const char *>(&words[offset + i]);
+		file.write(&bytes[1], sizeof(halfword));
+		file.write(&bytes[0], sizeof(halfword));
+	}
 	file.close();
 	return true;
 }
