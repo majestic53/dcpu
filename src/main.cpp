@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <csignal>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -29,6 +31,14 @@
  * Supported input flags
  */
 enum FLAG { NONE, PRINT_REG, PRINT_MEM, OUTPUT, INPUT };
+
+/*
+ * Static variables
+ */
+static dcpu cpu;
+static int output = NONE, path = NONE;
+static bool print_reg = false, print_mem = false;
+static char *output_path = NULL;
 
 /*
  * Determine if an input is a flag
@@ -46,15 +56,43 @@ int is_flag(const std::string &flag) {
 }
 
 /*
+ * Report execution
+ */
+static int report(void) {
+
+	// print cpu info & memory
+	if(print_reg)
+		std::cout << cpu.dump() << std::endl;
+	if(print_mem)
+		std::cout << cpu.memory().dump_all() << std::endl;
+
+	// write cpu info & memory to file
+	if(output)
+		if(!cpu.memory().dump_to_file(LOW, HIGH, output_path)) {
+			std::cerr << "Exception: Failed to write memory to path" << std::endl;
+			return 1;
+		}
+	return 0;
+}
+
+/*
+ * Handle Ctrl^C keyboard interrupts
+ */
+static void keyboard_interrupt0(int sig) {
+	std::cout << "Exception: Execution aborted" << std::endl;
+	exit(report());
+}
+
+/*
  * Main
  */
 int main(int argc, char *argv[]) {
-	dcpu cpu;
 	halfword low, high;
 	std::ifstream file;
 	std::vector<word> prog;
-	int output = NONE, path = NONE;
-	bool print_reg = false, print_mem = false;
+
+	// trap ctrl^c keyboard interrupt
+	std::signal(SIGINT, keyboard_interrupt0);
 
 	// check input
 	if(argc < 2) {
@@ -90,6 +128,10 @@ int main(int argc, char *argv[]) {
 		std::cerr << "Exception: No input path specified" << std::endl;
 		return 1;
 	}
+
+	// check if output path was given
+	if(output)
+		output_path = argv[output];
 
 	// attempt to open file
 	file.open(argv[path], std::ios::in | std::ios::binary);
@@ -127,17 +169,6 @@ int main(int argc, char *argv[]) {
 	// run cpu
 	cpu.run();
 
-	// print cpu info & memory
-	if(print_reg)
-		std::cout << cpu.dump() << std::endl;
-	if(print_mem)
-		std::cout << cpu.memory().dump_all() << std::endl;
-
-	// write cpu info & memory to file
-	if(output)
-		if(!cpu.memory().dump_to_file(LOW, HIGH, argv[output])) {
-			std::cerr << "Exception: Failed to write memory to path" << std::endl;
-			return 1;
-		}
-	return 0;
+	// run report operations
+	return report();
 }
