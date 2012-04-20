@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
 	// check input
 	if(argc < 2) {
-		std::cerr << "Usage: dcpu [-r | -m] [-d PATH] -p PATH..." << std::endl;
+		std::cerr << "Usage: " << argv[0] << " [-r | -m] [-d PATH] -p PATH..." << std::endl;
 		return 1;
 	}
 	for(int i = 1; i < argc; ++i)
