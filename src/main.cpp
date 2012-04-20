@@ -109,12 +109,15 @@ int main(int argc, char *argv[]) {
 	}
 
 	// read in file
-	while((file >> high)
-			&& (file >> low)) {
+	while(file.good()) {
+		file.read((char *) &high, sizeof(halfword));
+		file.read((char *) &low, sizeof(halfword));
 
 		// big endian!
 		prog.push_back((word) ((high << 8) | low));
 	}
+	if(!prog.empty())
+		prog.erase(prog.end() - 1);
 	file.close();
 
 	// add instructions to memory
